@@ -1,0 +1,61 @@
+# Get editor completions for Starship
+"$schema" = 'https://starship.rs/config-schema.json'
+
+add_newline = true
+
+# A clean, elegant, compact format using default colors
+format = """
+$os\
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$git_state\
+$cmd_duration\
+$line_break\
+$character"""
+
+[os]
+disabled = false
+style = "bold blue"
+
+[os.symbols]
+Arch = " "
+Debian = " "
+Linux = " "
+Unknown = " "
+
+[username]
+show_always = true
+style_user = "bold green"
+style_root = "bold red"
+format = "[$user]($style) "
+
+[directory]
+style = "bold cyan"
+truncate_to_repo = true
+truncation_length = 3
+format = "in [󰉋 $path]($style) "
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+
+[git_branch]
+style = "bold purple"
+symbol = " "
+format = "on [$symbol$branch]($style) "
+
+[git_status]
+style = "bold red"
+format = "([$all_status$ahead_behind]($style) )"
+
+[cmd_duration]
+style = "bold yellow"
+format = "took [$duration]($style) "
+
+[hostname]
+ssh_only = true
+style = "bold green"
+format = "@ [$hostname]($style) "

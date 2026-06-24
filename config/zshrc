@@ -1,0 +1,380 @@
+# ═══════════════════════════════════════════════════════════════
+#  .zshrc — Adwaita Dark Terminal Configuration
+#  Requires: oh-my-zsh, starship, fzf, bat, eza, fd, rg, zoxide, atuin
+# ═══════════════════════════════════════════════════════════════
+
+# ── Oh My Zsh Core ────────────────────────────────────────────────
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME=""  # Disabled: using Starship
+
+# ── Additional completions (must be before compinit) ──────────────
+fpath+="${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src"
+
+# ── Plugins ───────────────────────────────────────────────────────
+plugins=(
+  # ── Version Control ───────────────────────────────────────────
+  git
+  github
+
+  # ── Dev Languages & Tools ─────────────────────────────────────
+  node
+  npm
+  python
+  pip
+  rust
+  golang
+  docker
+  docker-compose
+
+  # ── System & Productivity ─────────────────────────────────────
+  sudo
+  extract
+  history
+  copypath
+  copyfile
+  colored-man-pages
+  command-not-found
+  systemd
+  encode64
+  urltools
+  web-search
+  alias-finder
+  dotenv
+
+  # ── External Plugins (cloned via install script) ───────────────
+  zsh-completions
+  fzf-tab
+  you-should-use
+  zsh-autosuggestions
+  zsh-history-substring-search
+  zsh-syntax-highlighting     # ← MUST be last
+)
+
+source "$ZSH/oh-my-zsh.sh"
+
+# ── Completion Engine ─────────────────────────────────────────────
+autoload -Uz compinit
+compinit -d "$HOME/.zcompdump-$ZSH_VERSION"
+
+# Completion styling
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list \
+  'm:{a-zA-Z}={A-Za-z}' \
+  'r:|[._-]=* r:|=*' \
+  'l:|=* r:|=*'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*:descriptions' format '[%d]'
+zstyle ':completion:*:git-checkout:*' sort false
+zstyle ':completion:*:*:*:*:processes' command 'ps -u $USER -o pid,user,comm -w'
+
+# fzf-tab previews
+zstyle ':fzf-tab:complete:cd:*'         fzf-preview 'eza --color=always --icons --group-directories-first $realpath 2>/dev/null'
+zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'eza --color=always --icons --group-directories-first $realpath 2>/dev/null'
+zstyle ':fzf-tab:complete:kill:argument-rest' fzf-preview '[[ $group == "[process ID]" ]] && ps --pid=$word -o cmd --no-header -w'
+zstyle ':fzf-tab:*' fzf-flags \
+  --height=50% --layout=reverse --border=rounded
+
+# ── History Configuration ─────────────────────────────────────────
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=100000
+SAVEHIST=100000
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_FIND_NO_DUPS
+setopt HIST_SAVE_NO_DUPS
+setopt SHARE_HISTORY
+setopt EXTENDED_HISTORY
+setopt INC_APPEND_HISTORY_TIME
+
+# ── Shell Options ─────────────────────────────────────────────────
+setopt AUTO_CD
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
+setopt PUSHD_MINUS
+setopt CORRECT
+setopt INTERACTIVE_COMMENTS
+setopt NO_BEEP
+setopt GLOBDOTS
+setopt EXTENDED_GLOB
+setopt PIPE_FAIL
+
+# ── Environment Variables ─────────────────────────────────────────
+export EDITOR="zed --wait"
+export VISUAL="$EDITOR"
+export PAGER="bat --paging=always"
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+export MANROFFOPT="-c"
+export LANG="en_US.UTF-8"
+export LC_ALL="en_US.UTF-8"
+
+# Bat theme
+export BAT_THEME="Dracula"
+
+# FZF — Default colors
+export FZF_DEFAULT_OPTS="
+  --height=50%
+  --layout=reverse
+  --border=rounded
+  --prompt='❯ '
+  --pointer='▶'
+  --marker='✓'
+  --preview-window=border-rounded
+"
+export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git --exclude node_modules"
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_ALT_C_COMMAND="fd --type d --hidden --follow --exclude .git --exclude node_modules"
+export FZF_CTRL_T_OPTS="--preview 'bat --color=always --style=numbers --line-range :80 {}'"
+export FZF_ALT_C_OPTS="--preview 'eza --color=always --icons --tree --level=2 {} 2>/dev/null'"
+export FZF_CTRL_R_OPTS="--preview 'echo {}' --preview-window=down:3:wrap"
+
+# Cargo / Rust
+[[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+
+# ── Aliases — Navigation ──────────────────────────────────────────
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias .....='cd ../../../..'
+alias ~='cd ~'
+alias -- -='cd -'
+alias d='dirs -v'
+
+# ── Aliases — Better LS (eza) ─────────────────────────────────────
+alias ls='eza --icons --group-directories-first --color=always'
+alias ll='eza --icons --group-directories-first --color=always -lh'
+alias la='eza --icons --group-directories-first --color=always -lah'
+alias lt='eza --icons --group-directories-first --color=always --tree --level=2'
+alias lta='eza --icons --group-directories-first --color=always --tree --level=3'
+alias l='eza --icons --group-directories-first --color=always -1'
+alias lsize='eza --icons --color=always -lah --sort=size'
+alias lmod='eza --icons --color=always -lah --sort=modified'
+
+# ── Aliases — Better Cat (bat) ────────────────────────────────────
+alias cat='bat --paging=never'
+alias catp='bat'
+alias cath='bat -l help'
+
+# ── Aliases — Better Find (fd) ────────────────────────────────────
+alias find='fd'
+alias fdf='fd --type f'
+alias fdd='fd --type d'
+
+# ── Aliases — Better Grep (ripgrep) ──────────────────────────────
+alias grep='rg'
+alias rgf='rg --files-with-matches'
+alias rgi='rg -i'
+
+# ── Aliases — System ──────────────────────────────────────────────
+alias df='df -h'
+alias du='du -sh'
+alias free='free -h'
+alias psa='ps aux | rg'
+alias top='btop'
+alias cls='clear'
+alias c='clear'
+alias h='history | tail -30'
+alias hg='history | rg'
+alias mkd='mkdir -pv'
+alias cpv='rsync -ah --info=progress2'
+alias trash='gio trash'
+alias serve='python -m http.server 8080'
+alias timer='date; time read -r _; date'
+
+# ── Aliases — Config Shortcuts ────────────────────────────────────
+alias reload='exec zsh && echo "✅ zshrc reloaded"'
+alias zshconfig='${EDITOR:-nano} ~/.zshrc'
+alias starconfig='${EDITOR:-nano} ~/.config/starship.toml'
+alias ghostconfig='${EDITOR:-nano} ~/.config/ghostty/config.ghostty'
+alias fetchconfig='${EDITOR:-nano} ~/.config/fastfetch/config.jsonc'
+
+# ── Aliases — Pacman / Yay ────────────────────────────────────────
+alias pac='sudo pacman'
+alias yins='yay -S --noconfirm'
+alias yupd='yay -Syu'
+alias ysrc='yay -Ss'
+alias yrem='sudo pacman -Rns'
+alias yclean='sudo pacman -Scc && yay -Scc'
+alias yorphan='sudo pacman -Rns $(pacman -Qtdq) 2>/dev/null && echo "No orphans found or removed."'
+alias ylist='pacman -Qe'
+alias yinfo='yay -Qi'
+alias yfiles='pacman -Ql'
+
+# ── Aliases — Git ─────────────────────────────────────────────────
+alias g='git'
+alias gst='git status'
+alias gco='git checkout'
+alias gcob='git checkout -b'
+alias gcom='git commit -m'
+alias gcoa='git commit --amend --no-edit'
+alias gcoA='git commit --amend'
+alias gaa='git add --all'
+alias gad='git add .'
+alias gp='git push'
+alias gpf='git push --force-with-lease'
+alias gps='git push --set-upstream origin HEAD'
+alias gpl='git pull'
+alias gplr='git pull --rebase'
+alias gf='git fetch --all --prune'
+alias glog='git log --oneline --graph --decorate --all -20'
+alias gloga='git log --oneline --graph --decorate --all'
+alias glogv='git log --stat -10'
+alias gdiff='git diff'
+alias gds='git diff --staged'
+alias grb='git rebase'
+alias gri='git rebase -i'
+alias grs='git reset --soft HEAD~1'
+alias grh='git reset --hard'
+alias gstash='git stash'
+alias gstp='git stash pop'
+alias gstl='git stash list'
+alias gbr='git branch -av'
+alias gbrd='git branch -d'
+alias gclone='git clone'
+alias gsubup='git submodule update --init --recursive'
+
+# ── Aliases — Network ─────────────────────────────────────────────
+alias myip='curl -s ifconfig.me && echo'
+alias localip="ip -br addr show | grep UP | awk '{print \$1, \$3}'"
+alias ports='ss -tulnp'
+alias ping='ping -c 4'
+alias weather='curl -s wttr.in'
+alias speedtest='curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python -'
+
+# ── Aliases — Fun / Misc ──────────────────────────────────────────
+alias fetch='fastfetch'
+alias matrix='cmatrix -C cyan'
+alias starwars='telnet towel.blinkenlights.nl'
+alias please='sudo'
+alias fuck='sudo $(fc -ln -1)'
+
+# ── Autosuggestions Config ────────────────────────────────────────
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#2e5555,bold"
+ZSH_AUTOSUGGEST_STRATEGY=(atuin history completion)
+ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
+ZSH_AUTOSUGGEST_USE_ASYNC=1
+
+# ── Syntax Highlighting Colors ────────────────────────────────────
+typeset -A ZSH_HIGHLIGHT_STYLES
+ZSH_HIGHLIGHT_STYLES[command]='fg=#00e5a0,bold'
+ZSH_HIGHLIGHT_STYLES[builtin]='fg=#00b4d8,bold'
+ZSH_HIGHLIGHT_STYLES[function]='fg=#4dffd2,bold'
+ZSH_HIGHLIGHT_STYLES[alias]='fg=#00e5a0'
+ZSH_HIGHLIGHT_STYLES[path]='fg=#80deea,underline'
+ZSH_HIGHLIGHT_STYLES[globbing]='fg=#4dffd2'
+ZSH_HIGHLIGHT_STYLES[single-quoted-argument]='fg=#a5d6a7'
+ZSH_HIGHLIGHT_STYLES[double-quoted-argument]='fg=#a5d6a7'
+ZSH_HIGHLIGHT_STYLES[dollar-quoted-argument]='fg=#80cbc4'
+ZSH_HIGHLIGHT_STYLES[redirection]='fg=#00b4d8'
+ZSH_HIGHLIGHT_STYLES[commandseparator]='fg=#4dffd2'
+ZSH_HIGHLIGHT_STYLES[unknown-token]='fg=#ef5350,bold'
+ZSH_HIGHLIGHT_STYLES[comment]='fg=#4a8080'
+ZSH_HIGHLIGHT_STYLES[named-fd]='fg=#4dffd2'
+ZSH_HIGHLIGHT_STYLES[numeric-fd]='fg=#4dffd2'
+
+# ── You Should Use Config ─────────────────────────────────────────
+export YSU_MESSAGE_POSITION="after"
+export YSU_MODE=ALL
+
+# ── History Substring Search Config ──────────────────────────────
+HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND="fg=#00e5a0,bold,underline"
+HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_NOT_FOUND="fg=#ef5350,bold"
+HISTORY_SUBSTRING_SEARCH_GLOBBING_FLAGS="i"
+
+# ── Keyboard Shortcuts ────────────────────────────────────────────
+# History navigation with arrows and Ctrl+P/N
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+bindkey '^P'   history-substring-search-up
+bindkey '^N'   history-substring-search-down
+
+# Word navigation
+bindkey '^[b' backward-word
+bindkey '^[f' forward-word
+bindkey '^[d' kill-word
+bindkey '^W'  backward-kill-word
+
+# Line navigation
+bindkey '^A' beginning-of-line
+bindkey '^E' end-of-line
+bindkey '^K' kill-line
+bindkey '^U' backward-kill-line
+
+# Insert last word (Alt+.)
+bindkey '^[.' insert-last-word
+
+# Edit command in $EDITOR (Ctrl+X Ctrl+E)
+autoload -z edit-command-line
+zle -N edit-command-line
+bindkey '^X^E' edit-command-line
+
+# ── Tool Initializations ──────────────────────────────────────────
+# Starship prompt (must come early, but after plugins)
+eval "$(starship init zsh)"
+
+# Zoxide — smart cd with frecency
+eval "$(zoxide init zsh --cmd z)"
+
+# Atuin — enhanced shell history (Ctrl+R for search)
+if command -v atuin &>/dev/null; then
+  eval "$(atuin init zsh --disable-up-arrow)"
+fi
+
+# FZF — fuzzy finder keybindings & completions
+if command -v fzf &>/dev/null; then
+  source <(fzf --zsh)
+fi
+
+# ── Helper Functions ──────────────────────────────────────────────
+# mkcd: make directory and cd into it
+mkcd() { mkdir -pv "$@" && cd "$_" || return; }
+
+# up: go up N directories
+up() {
+  local d=""
+  local limit="${1:-1}"
+  for (( i=1; i <= limit; i++ )); do d="../$d"; done
+  cd "$d" || return
+}
+
+# extract: universal archive extractor (backup if extract plugin fails)
+extract_file() {
+  if [ -f "$1" ]; then
+    case "$1" in
+      *.tar.bz2)   tar xjf "$1"   ;;
+      *.tar.gz)    tar xzf "$1"   ;;
+      *.tar.xz)    tar xJf "$1"   ;;
+      *.bz2)       bunzip2 "$1"   ;;
+      *.rar)       unrar x "$1"   ;;
+      *.gz)        gunzip "$1"    ;;
+      *.tar)       tar xf "$1"    ;;
+      *.tbz2)      tar xjf "$1"   ;;
+      *.tgz)       tar xzf "$1"   ;;
+      *.zip)       unzip "$1"     ;;
+      *.Z)         uncompress "$1";;
+      *.7z)        7z x "$1"      ;;
+      *)           echo "'$1' cannot be extracted via extract()" ;;
+    esac
+  else
+    echo "'$1' is not a valid file"
+  fi
+}
+
+# fzf-powered history search function
+fh() {
+  eval "$(history | fzf --tac --no-sort | sed 's/ *[0-9]* *//')"
+}
+
+# Quick git commit with message
+gac() { git add -A && git commit -m "$*"; }
+
+# Preview files with bat + fzf
+preview() {
+  fzf --preview 'bat --color=always --style=numbers {}' \
+      --preview-window='right:60%' \
+      --bind='enter:execute(bat --paging=always {})'
+}
+
+# ── Greeting — Show fastfetch on new session ───────────────────────
+fastfetch
