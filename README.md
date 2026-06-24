@@ -2,6 +2,8 @@
 
 My personal Arch Linux terminal configuration (Zsh + Ghostty + Starship + Fastfetch).
 
+![Showcase](assets/showcase.png)
+
 ## Installation
 
 ```bash
