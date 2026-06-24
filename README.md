@@ -36,6 +36,7 @@ These are the keyboard shortcuts changed from the default system and shell confi
 * `Alt + C`: Search folders with `fzf` and `cd` directly into it
 
 ### Custom Shell Functions & Aliases
+* `fetch`: Alias for `fastfetch` to display system details
 * `gac <message>`: Run `git add -A && git commit -m "<message>"`
 * `mkcd <dir>`: Create a directory and immediately `cd` into it
 * `up <num>`: Go up multiple directories (e.g. `up 3`)
