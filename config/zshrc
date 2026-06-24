@@ -1,5 +1,6 @@
 # ═══════════════════════════════════════════════════════════════
-#  .zshrc — Adwaita Dark Terminal Configuration
+#  .zshrc — Teal Dark Glassmorphism Terminal Configuration
+#  Palette: #0a0a0a bg │ #00b4d8 cyan │ #00e5a0 teal │ #4dffd2 mint
 #  Requires: oh-my-zsh, starship, fzf, bat, eza, fd, rg, zoxide, atuin
 # ═══════════════════════════════════════════════════════════════
 
@@ -366,7 +367,7 @@ fh() {
   eval "$(history | fzf --tac --no-sort | sed 's/ *[0-9]* *//')"
 }
 
-# Quick git commit with message
+# Quick git add all and commit with message
 gac() { git add -A && git commit -m "$*"; }
 
 # Preview files with bat + fzf

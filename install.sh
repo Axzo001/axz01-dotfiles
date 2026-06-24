@@ -96,12 +96,14 @@ backup_file() {
 backup_file "$HOME/.zshrc"
 backup_file "$HOME/.config/starship.toml"
 backup_file "$HOME/.config/fastfetch/config.jsonc"
+backup_file "$HOME/.config/ghostty/config"
 backup_file "$HOME/.config/ghostty/config.ghostty"
 
 # Copy configs
 cp "$SCRIPT_DIR/config/zshrc"            "$HOME/.zshrc"
 cp "$SCRIPT_DIR/config/starship.toml"    "$HOME/.config/starship.toml"
 cp "$SCRIPT_DIR/config/fastfetch.jsonc"  "$HOME/.config/fastfetch/config.jsonc"
+cp "$SCRIPT_DIR/config/ghostty.config"   "$HOME/.config/ghostty/config"
 cp "$SCRIPT_DIR/config/ghostty.config"   "$HOME/.config/ghostty/config.ghostty"
 
 ok "Configurations deployed."
