@@ -1,0 +1,6 @@
+[/]
+use-system-font=false
+custom-font='JetBrainsMono Nerd Font 13'
+theme='night'
+scrollback-lines=10000
+ignore-scrollback-limit=false

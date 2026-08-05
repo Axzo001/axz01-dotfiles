@@ -24,8 +24,6 @@ plugins=(
   pip
   rust
   golang
-  docker
-  docker-compose
 
   # ── System & Productivity ─────────────────────────────────────
   sudo
@@ -187,20 +185,42 @@ alias timer='date; time read -r _; date'
 alias reload='exec zsh && echo "✅ zshrc reloaded"'
 alias zshconfig='${EDITOR:-nano} ~/.zshrc'
 alias starconfig='${EDITOR:-nano} ~/.config/starship.toml'
-alias ghostconfig='${EDITOR:-nano} ~/.config/ghostty/config.ghostty'
+alias consoleconfig='gsettings list-recursively org.gnome.Console 2>/dev/null || echo "GNOME Console not configured"'
 alias fetchconfig='${EDITOR:-nano} ~/.config/fastfetch/config.jsonc'
 
-# ── Aliases — Pacman / Yay ────────────────────────────────────────
-alias pac='sudo pacman'
-alias yins='yay -S --noconfirm'
-alias yupd='yay -Syu'
-alias ysrc='yay -Ss'
-alias yrem='sudo pacman -Rns'
-alias yclean='sudo pacman -Scc && yay -Scc'
-alias yorphan='sudo pacman -Rns $(pacman -Qtdq) 2>/dev/null && echo "No orphans found or removed."'
-alias ylist='pacman -Qe'
-alias yinfo='yay -Qi'
-alias yfiles='pacman -Ql'
+# ── Aliases — Package Manager (distro-aware) ──────────────────────
+_distro_id() { grep -oP '^ID=\K.*' /etc/os-release 2>/dev/null | tr -d '"'; }
+_DISTRO="$(_distro_id)"
+
+if [[ "$_DISTRO" == "arch" ]] || [[ "$_DISTRO" == *"arch"* ]]; then
+  # Arch Linux — paru
+  alias pac='sudo pacman'
+  alias pins='paru -S --noconfirm'
+  alias pupd='paru -Syu'
+  alias psrc='paru -Ss'
+  alias prem='paru -Rns'
+  alias pclean='sudo pacman -Scc && paru -Scc'
+  alias porphan='paru -Rns $(pacman -Qtdq) 2>/dev/null && echo "No orphans found or removed."'
+  alias plist='pacman -Qe'
+  alias pinfo='paru -Qi'
+  alias pfiles='pacman -Ql'
+elif [[ "$_DISTRO" == "fedora" ]]; then
+  # Fedora — dnf
+  alias pins='sudo dnf install -y'
+  alias pupd='sudo dnf upgrade -y'
+  alias psrc='dnf search'
+  alias prem='sudo dnf remove -y'
+  alias pclean='sudo dnf clean all'
+  alias porphan='sudo dnf autoremove -y'
+  alias plist='dnf list installed'
+  alias pinfo='dnf info'
+  alias pfiles='rpm -ql'
+else
+  # Fallback — use whatever is available
+  if command -v paru &>/dev/null; then alias pupd='paru -Syu'; fi
+  if command -v dnf &>/dev/null; then alias pupd='sudo dnf upgrade -y'; fi
+fi
+unset _DISTRO
 
 # ── Aliases — Git ─────────────────────────────────────────────────
 alias g='git'
