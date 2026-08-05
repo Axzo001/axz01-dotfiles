@@ -199,7 +199,7 @@ clone_plugin() {
   fi
 }
 
-clone_plugin "zsh-completions"              "https://github.com/zsh-completions/zsh-completions"        "$ZSH_CUSTOM/plugins/zsh-completions"
+clone_plugin "zsh-completions"              "https://github.com/zsh-users/zsh-completions"              "$ZSH_CUSTOM/plugins/zsh-completions"
 clone_plugin "fzf-tab"                      "https://github.com/Aloxaf/fzf-tab"                         "$ZSH_CUSTOM/plugins/fzf-tab"
 clone_plugin "you-should-use"               "https://github.com/MichaelAquilina/zsh-you-should-use"     "$ZSH_CUSTOM/plugins/you-should-use"
 clone_plugin "zsh-autosuggestions"          "https://github.com/zsh-users/zsh-autosuggestions"          "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
