@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
 #  Dotfiles Installer — Universal Linux Terminal Setup
-#  Zsh + Oh My Zsh + Starship + Fastfetch
-#  Supports: Arch Linux (paru/yay), Fedora Workstation (dnf)
+#  Zsh + Oh My Zsh + Starship + Fastfetch + Atuin
+#  Supports: Arch Linux (paru/yay/pacman), Fedora Workstation (dnf)
 #  Terminal options: GNOME Console or Ghostty
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
@@ -30,6 +30,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ── 0. Detect Distribution ─────────────────────────────────────────
 detect_distro() {
   if [ -f /etc/os-release ]; then
+    # shellcheck disable=SC1091
     . /etc/os-release
     DISTRO_ID="${ID:-unknown}"
     DISTRO_LIKE="${ID_LIKE:-}"
@@ -38,15 +39,15 @@ detect_distro() {
     DISTRO_LIKE=""
   fi
 
-  if [[ "$DISTRO_ID" == "arch" ]] || [[ "$DISTRO_LIKE" == *"arch"* ]]; then
+  if [[ "$DISTRO_ID" == "arch" ]] || [[ "$DISTRO_LIKE" == *"arch"* ]] || [[ "$DISTRO_ID" =~ (endeavouros|manjaro|cachyos|garuda) ]]; then
     DISTRO="arch"
-  elif [[ "$DISTRO_ID" == "fedora" ]] || [[ "$DISTRO_LIKE" == *"fedora"* ]]; then
+  elif [[ "$DISTRO_ID" == "fedora" ]] || [[ "$DISTRO_LIKE" == *"fedora"* ]] || [[ "$DISTRO_ID" =~ (nobara|bazzite|rhel|centos) ]]; then
     DISTRO="fedora"
   else
     warn "Unrecognized distro '$DISTRO_ID'. Attempting best-effort install."
     DISTRO="unknown"
   fi
-  log "Detected distribution: ${BOLD}${DISTRO_ID}${RESET}"
+  log "Detected distribution: ${BOLD}${DISTRO_ID}${RESET} (profile: ${DISTRO})"
 }
 detect_distro
 
@@ -65,13 +66,14 @@ esac
 log "Selected terminal: ${BOLD}${TERMINAL}${RESET}"
 echo ""
 
-# ── 2. Remove Conflicting Terminal ────────────────────────────────
+# ── 2. Remove Conflicting Terminal (Optional) ──────────────────────
 remove_package() {
   local pkg="$1"
   case "$DISTRO" in
     arch)
       if pacman -Qi "$pkg" &>/dev/null; then
         paru -Rns --noconfirm "$pkg" 2>/dev/null || \
+          yay -Rns --noconfirm "$pkg" 2>/dev/null || \
           sudo pacman -Rns --noconfirm "$pkg" 2>/dev/null || \
           warn "Could not remove $pkg, skipping."
       fi
@@ -83,18 +85,30 @@ remove_package() {
       fi
       ;;
   esac
+  return 0
 }
 
-if [[ "$TERMINAL" == "gnome-console" ]]; then
-  log "Removing Ghostty (if installed)..."
-  remove_package "ghostty"
-  [[ "$DISTRO" == "arch" ]] && remove_package "ghostty-shell-integration" && remove_package "ghostty-terminfo"
-  rm -rf "$HOME/.config/ghostty" "$HOME/.local/share/ghostty" "$HOME/.cache/ghostty"
-  ok "Ghostty removed and purged."
-elif [[ "$TERMINAL" == "ghostty" ]]; then
-  log "Removing GNOME Console (if installed)..."
-  remove_package "gnome-console"
-  ok "GNOME Console removed."
+ask "Do you want to remove the alternate terminal to avoid duplicates? [y/N]"
+read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [y/N] (default: N): " PURGE_ALT
+PURGE_ALT="${PURGE_ALT:-N}"
+
+if [[ "$PURGE_ALT" =~ ^[Yy]$ ]]; then
+  if [[ "$TERMINAL" == "gnome-console" ]]; then
+    log "Removing Ghostty (if installed)..."
+    remove_package "ghostty"
+    if [[ "$DISTRO" == "arch" ]]; then
+      remove_package "ghostty-shell-integration"
+      remove_package "ghostty-terminfo"
+    fi
+    rm -rf "$HOME/.config/ghostty" "$HOME/.local/share/ghostty" "$HOME/.cache/ghostty"
+    ok "Ghostty removed and purged."
+  elif [[ "$TERMINAL" == "ghostty" ]]; then
+    log "Removing GNOME Console (if installed)..."
+    remove_package "gnome-console"
+    ok "GNOME Console removed."
+  fi
+else
+  log "Skipping removal of alternate terminal."
 fi
 
 # ── 3. Install System Dependencies ────────────────────────────────
@@ -107,26 +121,27 @@ install_arch() {
   elif command -v yay &>/dev/null; then
     AUR_HELPER="yay"
   else
-    error "No AUR helper found. Please install paru: https://github.com/Morganamilo/paru"
+    warn "No AUR helper (paru/yay) found. Using pacman for official packages."
+    AUR_HELPER="sudo pacman"
   fi
-  log "Using AUR helper: ${BOLD}${AUR_HELPER}${RESET}"
+  log "Using package installer: ${BOLD}${AUR_HELPER}${RESET}"
 
   # Common packages
   $AUR_HELPER -S --noconfirm --needed \
     zsh starship fzf bat eza fd zoxide atuin ripgrep \
-    ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols-mono \
-    fastfetch
+    ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols \
+    fastfetch || warn "Some Arch packages failed to install, proceeding..."
 
   # Terminal-specific
   if [[ "$TERMINAL" == "ghostty" ]]; then
-    $AUR_HELPER -S --noconfirm --needed ghostty
+    $AUR_HELPER -S --noconfirm --needed ghostty || warn "Could not install Ghostty via AUR helper."
   else
-    $AUR_HELPER -S --noconfirm --needed gnome-console
+    $AUR_HELPER -S --noconfirm --needed gnome-console || true
   fi
 }
 
 install_fedora() {
-  # Enable RPM Fusion (free) if not already enabled (needed for some packages)
+  # Enable RPM Fusion (free) if not already enabled
   if ! rpm -q rpmfusion-free-release &>/dev/null; then
     log "Enabling RPM Fusion Free repository..."
     sudo dnf install -y \
@@ -136,33 +151,55 @@ install_fedora() {
 
   # Common packages available in Fedora repos
   sudo dnf install -y \
-    zsh fzf bat eza fd-find zoxide ripgrep \
-    jetbrains-mono-fonts-all \
-    fastfetch
+    zsh fzf bat eza fd-find zoxide ripgrep fastfetch curl \
+    jetbrains-mono-fonts 2>/dev/null || warn "Some dnf packages failed to install."
 
-  # Starship: install via official installer script (not in Fedora repos)
-  if ! command -v starship &>/dev/null; then
-    log "Installing Starship via official script..."
-    curl -sS https://starship.rs/install.sh | sh -s -- --yes
+  # Ensure Nerd Font is available on Fedora (standard repo font lacks glyphs)
+  if ! fc-list : family 2>/dev/null | grep -iq "JetBrainsMono Nerd Font"; then
+    log "Downloading JetBrainsMono Nerd Font for Fedora..."
+    FONT_DIR="$HOME/.local/share/fonts/JetBrainsMono"
+    mkdir -p "$FONT_DIR"
+    if curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz" -o /tmp/JetBrainsMono.tar.xz; then
+      tar -xf /tmp/JetBrainsMono.tar.xz -C "$FONT_DIR"
+      rm -f /tmp/JetBrainsMono.tar.xz
+      fc-cache -f "$FONT_DIR" 2>/dev/null || true
+      ok "JetBrainsMono Nerd Font installed to ~/.local/share/fonts."
+    else
+      warn "Could not download JetBrainsMono Nerd Font automatically. You can install it manually from nerdfonts.com."
+    fi
   fi
 
-  # Atuin: install via official installer script (Fedora COPR available but installer is easier)
+  # Fedora uses 'fdfind' instead of 'fd' — create a symlink in ~/.local/bin
+  if command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
+    ok "Created fd -> fdfind symlink in ~/.local/bin"
+  fi
+
+  # Starship: install via dnf or official installer script
+  if ! command -v starship &>/dev/null; then
+    log "Installing Starship..."
+    sudo dnf install -y starship 2>/dev/null || \
+      (curl -sS https://starship.rs/install.sh | sh -s -- --yes) || \
+      warn "Starship installation failed."
+  fi
+
+  # Atuin: install via dnf or official installer script
   if ! command -v atuin &>/dev/null; then
-    log "Installing Atuin via official script..."
-    bash <(curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh) || \
+    log "Installing Atuin..."
+    sudo dnf install -y atuin 2>/dev/null || \
+      (bash <(curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh)) || \
       warn "Atuin install failed, skipping."
   fi
 
   # Terminal-specific
   if [[ "$TERMINAL" == "ghostty" ]]; then
-    # Ghostty is in Fedora official repos as of Fedora 42+
     if sudo dnf install -y ghostty 2>/dev/null; then
       ok "Ghostty installed via dnf."
     else
-      warn "Ghostty not found in repos. Install manually: https://ghostty.org"
+      warn "Ghostty not found in standard repos. Install manually: https://ghostty.org"
     fi
   else
-    # gnome-console is bundled with GNOME, ensure it's installed
     sudo dnf install -y gnome-console 2>/dev/null || true
   fi
 }
@@ -170,10 +207,10 @@ install_fedora() {
 case "$DISTRO" in
   arch)    install_arch ;;
   fedora)  install_fedora ;;
-  *)       warn "Unknown distro — skipping package installation. Install manually: zsh fzf bat eza fd zoxide atuin starship fastfetch" ;;
+  *)       warn "Unknown distro — skipping automated package install. Install manually: zsh fzf bat eza fd zoxide atuin starship fastfetch" ;;
 esac
 
-ok "System packages installed."
+ok "System packages processed."
 
 # ── 4. Install Oh My Zsh ──────────────────────────────────────────
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
@@ -223,20 +260,7 @@ backup_file "$HOME/.zshrc"
 backup_file "$HOME/.config/starship.toml"
 backup_file "$HOME/.config/fastfetch/config.jsonc"
 
-# Write distro-aware zshrc
-DISTRO_VAR="$DISTRO" envsubst < "$SCRIPT_DIR/config/zshrc.template" > "$HOME/.zshrc" 2>/dev/null || \
-  cp "$SCRIPT_DIR/config/zshrc" "$HOME/.zshrc"
-
-# On Fedora, fd binary is named 'fd-find' — patch the zshrc alias
-if [[ "$DISTRO" == "fedora" ]]; then
-  if command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
-    # Append fd alias for Fedora
-    echo "" >> "$HOME/.zshrc"
-    echo "# Fedora: fd-find binary is named fdfind" >> "$HOME/.zshrc"
-    echo "alias fd='fdfind'" >> "$HOME/.zshrc"
-  fi
-fi
-
+cp "$SCRIPT_DIR/config/zshrc"          "$HOME/.zshrc"
 cp "$SCRIPT_DIR/config/starship.toml"   "$HOME/.config/starship.toml"
 cp "$SCRIPT_DIR/config/fastfetch.jsonc" "$HOME/.config/fastfetch/config.jsonc"
 
@@ -244,12 +268,12 @@ cp "$SCRIPT_DIR/config/fastfetch.jsonc" "$HOME/.config/fastfetch/config.jsonc"
 if [[ "$TERMINAL" == "gnome-console" ]]; then
   if command -v gsettings &>/dev/null; then
     log "Configuring GNOME Console..."
-    gsettings set org.gnome.Console use-system-font false
-    gsettings set org.gnome.Console custom-font 'JetBrainsMono Nerd Font 13'
-    gsettings set org.gnome.Console theme 'night'
-    gsettings set org.gnome.Console scrollback-lines 10000
+    gsettings set org.gnome.Console use-system-font false 2>/dev/null || true
+    gsettings set org.gnome.Console custom-font 'JetBrainsMono Nerd Font 13' 2>/dev/null || true
+    gsettings set org.gnome.Console theme 'night' 2>/dev/null || true
+    gsettings set org.gnome.Console scrollback-lines 10000 2>/dev/null || true
     if [ -f "$SCRIPT_DIR/config/gnome-console.dconf" ] && command -v dconf &>/dev/null; then
-      dconf load /org/gnome/Console/ < "$SCRIPT_DIR/config/gnome-console.dconf"
+      dconf load /org/gnome/Console/ < "$SCRIPT_DIR/config/gnome-console.dconf" 2>/dev/null || true
     fi
     ok "GNOME Console configured."
   fi
@@ -265,13 +289,20 @@ fi
 ok "Configurations deployed."
 
 # ── 8. Change Default Shell to Zsh ────────────────────────────────
-ZSH_PATH="$(command -v zsh)"
-if [ "$SHELL" != "$ZSH_PATH" ]; then
-  log "Setting default shell to zsh..."
-  chsh -s "$ZSH_PATH"
-  ok "Default shell set to zsh (takes effect on next login)."
-else
-  log "zsh is already the default shell."
+ZSH_PATH="$(command -v zsh 2>/dev/null || true)"
+if [ -n "$ZSH_PATH" ]; then
+  CURRENT_SHELL="$(getent passwd "$USER" 2>/dev/null | cut -d: -f7 || echo "$SHELL")"
+  if [ "$CURRENT_SHELL" != "$ZSH_PATH" ]; then
+    log "Setting default shell to zsh..."
+    if grep -qx "$ZSH_PATH" /etc/shells 2>/dev/null; then
+      chsh -s "$ZSH_PATH" || warn "Could not change default shell with chsh. Run: chsh -s $ZSH_PATH"
+      ok "Default shell set to zsh (takes effect on next login)."
+    else
+      warn "$ZSH_PATH is not in /etc/shells. Add it with: echo $ZSH_PATH | sudo tee -a /etc/shells"
+    fi
+  else
+    log "zsh is already the default shell."
+  fi
 fi
 
 # ── 9. Import Shell History into Atuin ────────────────────────────
