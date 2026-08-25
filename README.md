@@ -1,8 +1,8 @@
 # axz01-dotfiles
 
-My personal terminal setup for Arch Linux and Fedora Workstation.
+My personal Linux workstation setup for **Arch Linux** and **Fedora Workstation**.
 
-Built around **Zsh**, **Oh My Zsh**, **Starship**, **Fastfetch**, and **Atuin**, with configs tailored for **GNOME Console** and **Ghostty**.
+An all-in-one dotfiles repository featuring a teal/mint glassmorphic terminal, modern CLI utilities, desktop aesthetics, and developer productivity tools.
 
 ![Showcase](assets/showcase.png)
 
@@ -15,25 +15,36 @@ chmod +x install.sh
 ./install.sh
 ```
 
-The installer handles:
-* Detecting your distro (`paru`, `yay`, `pacman`, or `dnf`)
-* Setting up your chosen terminal (GNOME Console or Ghostty)
-* Installing JetBrainsMono Nerd Font and system dependencies
-* Setting up Oh My Zsh, custom plugins, and deploying all configs
+### Interactive Installer Options
 
-## What's Inside
+When running `./install.sh`, you can choose:
+* **1) Full Workstation Setup** — Complete setup with terminal, configs, Hatter icons, and productivity tools
+* **2) Terminal Setup Only** — Zsh, OMZ, plugins, Starship, Fastfetch, Atuin, and terminal profiles
+* **3) Install Hatter Icons** — Install and apply the rounded Hatter icon theme ([Mibea/Hatter](https://github.com/Mibea/Hatter))
+* **4) Productivity Suite** — Install Zed, Antigravity, Android Studio, and ONLYOFFICE
+* **5) Deploy Configs Only** — Sync configuration files to `~/.config` and `~/.zshrc`
 
-* **Shell**: Zsh + Oh My Zsh (autosuggestions, syntax highlighting, fzf-tab, substring search)
-* **Prompt**: Starship (minimal teal/mint layout with git status, duration, and distro icon)
-* **History**: Atuin (searchable shell history with rich metadata)
-* **Terminal**: GNOME Console & Ghostty (dark teal glassmorphic theme)
-* **CLI Tools**: `eza` (modern ls), `bat` (syntax-highlighted cat), `zoxide` (smart directory jumping), `ripgrep`, and `fd`
+The installer automatically detects your distribution, builds `paru` or `yay` if missing on Arch Linux, downloads JetBrainsMono Nerd Font, and handles terminal selection (GNOME Console or Ghostty).
+
+## What's Included
+
+* **Shell & Prompt**: Zsh + Oh My Zsh with autosuggestions, syntax highlighting, fzf-tab, and Starship prompt.
+* **Terminal**: Dark teal glassmorphic profiles for GNOME Console and Ghostty.
+* **System Info**: Fastfetch with compact small logo and storage monitoring.
+* **History**: Atuin with enhanced fuzzy search and command history tracking.
+* **Icons & Desktop**: [Hatter Icon Theme](https://github.com/Mibea/Hatter) for rounded, modern GNOME/desktop styling.
+* **Productivity Suite**:
+  * **Zed Editor** — High-performance code editor
+  * **Google Antigravity & CLI** — Autonomous agentic development environment
+  * **Android Studio** — Android app development IDE
+  * **ONLYOFFICE** — Complete local office document suite
+* **CLI Power Tools**: `eza`, `bat`, `zoxide`, `ripgrep`, `fd`, and `fzf`.
 
 ## Quick Aliases & Helpers
 
-* `pins`, `pupd`, `prem`, `psrc`, `pclean`, `porphan` — Unified package manager commands across Arch and Fedora
-* `gac "<msg>"` — Quick `git add -A && git commit -m "<msg>"`
-* `mkcd <dir>` — Make directory and `cd` straight into it
-* `up <n>` — Jump up `n` parent directories (`up 3`)
-* `preview` — Interactive fuzzy file browser with live syntax preview
-* `z <dir>` — Jump to frequent folders instantly using Zoxide
+* `pins`, `pupd`, `prem`, `psrc`, `pclean`, `porphan` — Distro-agnostic package management (`paru` / `dnf`)
+* `gac "<msg>"` — Fast stage all and commit (`git add -A && git commit -m`)
+* `mkcd <dir>` — Make directory and `cd` directly into it
+* `up <n>` — Go up `n` parent directories (e.g. `up 3`)
+* `preview` — Interactive fuzzy file finder with live syntax preview
+* `z <dir>` — Instant smart directory jumping via Zoxide

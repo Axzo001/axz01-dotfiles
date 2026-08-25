@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
-#  Dotfiles Installer — Universal Linux Terminal Setup
-#  Zsh + Oh My Zsh + Starship + Fastfetch + Atuin
+#  Dotfiles Installer — Universal Linux Workstation Setup
+#  Terminal │ Productivity Apps │ Desktop Customization
 #  Supports: Arch Linux (paru/yay/pacman), Fedora Workstation (dnf)
-#  Terminal options: GNOME Console or Ghostty
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
 
-# ── Colors ────────────────────────────────────────────────────────
+# ── Colors & UI ───────────────────────────────────────────────────
 CYAN='\033[38;2;0;180;216m'; TEAL='\033[38;2;0;229;160m'
 MINT='\033[38;2;77;255;210m'; RED='\033[0;31m'
 BOLD='\033[1m'; RESET='\033[0m'
@@ -18,16 +17,13 @@ warn()  { echo -e "${CYAN}${BOLD}⚠${RESET} $*"; }
 error() { echo -e "${RED}${BOLD}✗${RESET} $*"; exit 1; }
 ask()   { echo -e "${TEAL}${BOLD}?${RESET} $*"; }
 
-echo ""
-echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────╮${RESET}"
-echo -e "${TEAL}${BOLD}│       Axz01 Dotfiles — Universal Terminal Setup    │${RESET}"
-echo -e "${TEAL}${BOLD}│       Zsh │ Starship │ Fastfetch │ Atuin           │${RESET}"
-echo -e "${TEAL}${BOLD}╰────────────────────────────────────────────────────╯${RESET}"
-echo ""
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DISTRO="unknown"
+DISTRO_ID="unknown"
+AUR_HELPER=""
+TERMINAL="gnome-console"
 
-# ── 0. Detect Distribution ─────────────────────────────────────────
+# ── 0. Distro Detection ───────────────────────────────────────────
 detect_distro() {
   if [ -f /etc/os-release ]; then
     # shellcheck disable=SC1091
@@ -44,29 +40,82 @@ detect_distro() {
   elif [[ "$DISTRO_ID" == "fedora" ]] || [[ "$DISTRO_LIKE" == *"fedora"* ]] || [[ "$DISTRO_ID" =~ (nobara|bazzite|rhel|centos) ]]; then
     DISTRO="fedora"
   else
-    warn "Unrecognized distro '$DISTRO_ID'. Attempting best-effort install."
+    warn "Unrecognized distribution '$DISTRO_ID'. Defaulting to best-effort mode."
     DISTRO="unknown"
   fi
   log "Detected distribution: ${BOLD}${DISTRO_ID}${RESET} (profile: ${DISTRO})"
 }
-detect_distro
 
-# ── 1. Terminal Choice ─────────────────────────────────────────────
-echo ""
-ask "Which terminal do you want to configure?"
-echo "  1) GNOME Console  (default, recommended)"
-echo "  2) Ghostty        (GPU-accelerated, feature-rich)"
-read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [1/2] (default: 1): " TERM_CHOICE
-TERM_CHOICE="${TERM_CHOICE:-1}"
+# ── 1. AUR Helper Setup (Arch Linux) ──────────────────────────────
+setup_aur_helper() {
+  [[ "$DISTRO" != "arch" ]] && return 0
 
-case "$TERM_CHOICE" in
-  2) TERMINAL="ghostty" ;;
-  *) TERMINAL="gnome-console" ;;
-esac
-log "Selected terminal: ${BOLD}${TERMINAL}${RESET}"
-echo ""
+  if command -v paru &>/dev/null; then
+    AUR_HELPER="paru"
+    log "Found AUR helper: ${BOLD}paru${RESET}"
+    return 0
+  elif command -v yay &>/dev/null; then
+    AUR_HELPER="yay"
+    log "Found AUR helper: ${BOLD}yay${RESET}"
+    return 0
+  fi
 
-# ── 2. Remove Conflicting Terminal (Optional) ──────────────────────
+  echo ""
+  warn "No AUR helper (paru/yay) was detected on your Arch system."
+  ask "Which AUR helper would you like to build and install?"
+  echo "  1) paru  (Rust-based, fast, modern — recommended)"
+  echo "  2) yay   (Go-based, lightweight, classic)"
+  echo "  3) None  (Use standard pacman for official packages only)"
+  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [1/2/3] (default: 1): " HELPER_CHOICE
+  HELPER_CHOICE="${HELPER_CHOICE:-1}"
+
+  case "$HELPER_CHOICE" in
+    2)
+      log "Installing dependencies for yay (base-devel, git, go)..."
+      sudo pacman -S --needed --noconfirm base-devel git go
+      local tmp_yay="/tmp/yay-install-$$"
+      rm -rf "$tmp_yay"
+      git clone --depth=1 https://aur.archlinux.org/yay.git "$tmp_yay"
+      (cd "$tmp_yay" && makepkg -si --noconfirm)
+      rm -rf "$tmp_yay"
+      AUR_HELPER="yay"
+      ok "yay successfully installed and configured."
+      ;;
+    3)
+      warn "Skipping AUR helper installation. AUR-only packages will be skipped."
+      AUR_HELPER="sudo pacman"
+      ;;
+    *)
+      log "Installing dependencies for paru (base-devel, git, rust, cargo)..."
+      sudo pacman -S --needed --noconfirm base-devel git rust cargo
+      local tmp_paru="/tmp/paru-install-$$"
+      rm -rf "$tmp_paru"
+      git clone --depth=1 https://aur.archlinux.org/paru.git "$tmp_paru"
+      (cd "$tmp_paru" && makepkg -si --noconfirm)
+      rm -rf "$tmp_paru"
+      AUR_HELPER="paru"
+      ok "paru successfully installed and configured."
+      ;;
+  esac
+}
+
+# ── 2. Terminal Selection ─────────────────────────────────────────
+choose_terminal() {
+  echo ""
+  ask "Which terminal do you want to configure?"
+  echo "  1) GNOME Console  (default, clean GNOME integration)"
+  echo "  2) Ghostty        (GPU-accelerated, modern splits & tabs)"
+  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [1/2] (default: 1): " TERM_CHOICE
+  TERM_CHOICE="${TERM_CHOICE:-1}"
+
+  case "$TERM_CHOICE" in
+    2) TERMINAL="ghostty" ;;
+    *) TERMINAL="gnome-console" ;;
+  esac
+  log "Selected terminal: ${BOLD}${TERMINAL}${RESET}"
+}
+
+# ── 3. Remove Conflicting Terminal (Optional) ──────────────────────
 remove_package() {
   local pkg="$1"
   case "$DISTRO" in
@@ -88,141 +137,111 @@ remove_package() {
   return 0
 }
 
-ask "Do you want to remove the alternate terminal to avoid duplicates? [y/N]"
-read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [y/N] (default: N): " PURGE_ALT
-PURGE_ALT="${PURGE_ALT:-N}"
+purge_alternate_terminal() {
+  echo ""
+  ask "Do you want to remove the alternate terminal to avoid duplicates? [y/N]"
+  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [y/N] (default: N): " PURGE_ALT
+  PURGE_ALT="${PURGE_ALT:-N}"
 
-if [[ "$PURGE_ALT" =~ ^[Yy]$ ]]; then
-  if [[ "$TERMINAL" == "gnome-console" ]]; then
-    log "Removing Ghostty (if installed)..."
-    remove_package "ghostty"
-    if [[ "$DISTRO" == "arch" ]]; then
-      remove_package "ghostty-shell-integration"
-      remove_package "ghostty-terminfo"
+  if [[ "$PURGE_ALT" =~ ^[Yy]$ ]]; then
+    if [[ "$TERMINAL" == "gnome-console" ]]; then
+      log "Removing Ghostty (if installed)..."
+      remove_package "ghostty"
+      if [[ "$DISTRO" == "arch" ]]; then
+        remove_package "ghostty-shell-integration"
+        remove_package "ghostty-terminfo"
+      fi
+      rm -rf "$HOME/.config/ghostty" "$HOME/.local/share/ghostty" "$HOME/.cache/ghostty"
+      ok "Ghostty removed."
+    elif [[ "$TERMINAL" == "ghostty" ]]; then
+      log "Removing GNOME Console (if installed)..."
+      remove_package "gnome-console"
+      ok "GNOME Console removed."
     fi
-    rm -rf "$HOME/.config/ghostty" "$HOME/.local/share/ghostty" "$HOME/.cache/ghostty"
-    ok "Ghostty removed and purged."
-  elif [[ "$TERMINAL" == "ghostty" ]]; then
-    log "Removing GNOME Console (if installed)..."
-    remove_package "gnome-console"
-    ok "GNOME Console removed."
-  fi
-else
-  log "Skipping removal of alternate terminal."
-fi
-
-# ── 3. Install System Dependencies ────────────────────────────────
-log "Installing dependencies..."
-
-install_arch() {
-  # Detect AUR helper
-  if command -v paru &>/dev/null; then
-    AUR_HELPER="paru"
-  elif command -v yay &>/dev/null; then
-    AUR_HELPER="yay"
   else
-    warn "No AUR helper (paru/yay) found. Using pacman for official packages."
-    AUR_HELPER="sudo pacman"
-  fi
-  log "Using package installer: ${BOLD}${AUR_HELPER}${RESET}"
-
-  # Common packages
-  $AUR_HELPER -S --noconfirm --needed \
-    zsh starship fzf bat eza fd zoxide atuin ripgrep \
-    ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols \
-    fastfetch || warn "Some Arch packages failed to install, proceeding..."
-
-  # Terminal-specific
-  if [[ "$TERMINAL" == "ghostty" ]]; then
-    $AUR_HELPER -S --noconfirm --needed ghostty || warn "Could not install Ghostty via AUR helper."
-  else
-    $AUR_HELPER -S --noconfirm --needed gnome-console || true
+    log "Keeping alternate terminal installed."
   fi
 }
 
-install_fedora() {
-  # Enable RPM Fusion (free) if not already enabled
-  if ! rpm -q rpmfusion-free-release &>/dev/null; then
-    log "Enabling RPM Fusion Free repository..."
+# ── 4. System Packages & Tools ────────────────────────────────────
+install_system_packages() {
+  log "Installing base terminal packages and dependencies..."
+
+  if [[ "$DISTRO" == "arch" ]]; then
+    ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed \
+      zsh starship fzf bat eza fd zoxide atuin ripgrep \
+      ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols \
+      fastfetch || warn "Some Arch packages failed to install, continuing..."
+
+    if [[ "$TERMINAL" == "ghostty" ]]; then
+      ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed ghostty || warn "Could not install Ghostty."
+    else
+      ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed gnome-console || true
+    fi
+
+  elif [[ "$DISTRO" == "fedora" ]]; then
+    if ! rpm -q rpmfusion-free-release &>/dev/null; then
+      log "Enabling RPM Fusion Free..."
+      sudo dnf install -y \
+        "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm" \
+        2>/dev/null || warn "Could not enable RPM Fusion."
+    fi
+
     sudo dnf install -y \
-      "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm" \
-      2>/dev/null || warn "Could not enable RPM Fusion, some packages may be unavailable."
-  fi
+      zsh fzf bat eza fd-find zoxide ripgrep fastfetch curl \
+      jetbrains-mono-fonts 2>/dev/null || warn "Some dnf packages failed to install."
 
-  # Common packages available in Fedora repos
-  sudo dnf install -y \
-    zsh fzf bat eza fd-find zoxide ripgrep fastfetch curl \
-    jetbrains-mono-fonts 2>/dev/null || warn "Some dnf packages failed to install."
+    # Install JetBrainsMono Nerd Font if not present
+    if ! fc-list : family 2>/dev/null | grep -iq "JetBrainsMono Nerd Font"; then
+      log "Downloading JetBrainsMono Nerd Font for Fedora..."
+      local font_dir="$HOME/.local/share/fonts/JetBrainsMono"
+      mkdir -p "$font_dir"
+      if curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz" -o /tmp/JetBrainsMono.tar.xz; then
+        tar -xf /tmp/JetBrainsMono.tar.xz -C "$font_dir"
+        rm -f /tmp/JetBrainsMono.tar.xz
+        fc-cache -f "$font_dir" 2>/dev/null || true
+        ok "JetBrainsMono Nerd Font installed to ~/.local/share/fonts."
+      fi
+    fi
 
-  # Ensure Nerd Font is available on Fedora (standard repo font lacks glyphs)
-  if ! fc-list : family 2>/dev/null | grep -iq "JetBrainsMono Nerd Font"; then
-    log "Downloading JetBrainsMono Nerd Font for Fedora..."
-    FONT_DIR="$HOME/.local/share/fonts/JetBrainsMono"
-    mkdir -p "$FONT_DIR"
-    if curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz" -o /tmp/JetBrainsMono.tar.xz; then
-      tar -xf /tmp/JetBrainsMono.tar.xz -C "$FONT_DIR"
-      rm -f /tmp/JetBrainsMono.tar.xz
-      fc-cache -f "$FONT_DIR" 2>/dev/null || true
-      ok "JetBrainsMono Nerd Font installed to ~/.local/share/fonts."
+    # Symlink fd -> fdfind
+    if command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
+      mkdir -p "$HOME/.local/bin"
+      ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
+    fi
+
+    # Starship
+    if ! command -v starship &>/dev/null; then
+      sudo dnf install -y starship 2>/dev/null || \
+        (curl -sS https://starship.rs/install.sh | sh -s -- --yes) || true
+    fi
+
+    # Atuin
+    if ! command -v atuin &>/dev/null; then
+      sudo dnf install -y atuin 2>/dev/null || \
+        (bash <(curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh)) || true
+    fi
+
+    # Terminal
+    if [[ "$TERMINAL" == "ghostty" ]]; then
+      sudo dnf install -y ghostty 2>/dev/null || warn "Ghostty not found in repos. Install via ghostty.org"
     else
-      warn "Could not download JetBrainsMono Nerd Font automatically. You can install it manually from nerdfonts.com."
+      sudo dnf install -y gnome-console 2>/dev/null || true
     fi
   fi
-
-  # Fedora uses 'fdfind' instead of 'fd' — create a symlink in ~/.local/bin
-  if command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
-    mkdir -p "$HOME/.local/bin"
-    ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
-    ok "Created fd -> fdfind symlink in ~/.local/bin"
-  fi
-
-  # Starship: install via dnf or official installer script
-  if ! command -v starship &>/dev/null; then
-    log "Installing Starship..."
-    sudo dnf install -y starship 2>/dev/null || \
-      (curl -sS https://starship.rs/install.sh | sh -s -- --yes) || \
-      warn "Starship installation failed."
-  fi
-
-  # Atuin: install via dnf or official installer script
-  if ! command -v atuin &>/dev/null; then
-    log "Installing Atuin..."
-    sudo dnf install -y atuin 2>/dev/null || \
-      (bash <(curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh)) || \
-      warn "Atuin install failed, skipping."
-  fi
-
-  # Terminal-specific
-  if [[ "$TERMINAL" == "ghostty" ]]; then
-    if sudo dnf install -y ghostty 2>/dev/null; then
-      ok "Ghostty installed via dnf."
-    else
-      warn "Ghostty not found in standard repos. Install manually: https://ghostty.org"
-    fi
-  else
-    sudo dnf install -y gnome-console 2>/dev/null || true
-  fi
+  ok "Base dependencies processed."
 }
 
-case "$DISTRO" in
-  arch)    install_arch ;;
-  fedora)  install_fedora ;;
-  *)       warn "Unknown distro — skipping automated package install. Install manually: zsh fzf bat eza fd zoxide atuin starship fastfetch" ;;
-esac
-
-ok "System packages processed."
-
-# ── 4. Install Oh My Zsh ──────────────────────────────────────────
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-  log "Installing Oh My Zsh..."
-  git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git "$HOME/.oh-my-zsh"
-  ok "Oh My Zsh installed."
-else
-  warn "Oh My Zsh already installed — skipping."
-fi
-
-# ── 5. Clone Oh My Zsh Plugins ─────────────────────────────────────
-ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+# ── 5. Oh My Zsh & Plugins ────────────────────────────────────────
+install_oh_my_zsh() {
+  if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    log "Installing Oh My Zsh..."
+    git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git "$HOME/.oh-my-zsh"
+    ok "Oh My Zsh installed."
+  else
+    ok "Oh My Zsh already installed."
+  fi
+}
 
 clone_plugin() {
   local name="$1" url="$2" dest="$3"
@@ -231,23 +250,22 @@ clone_plugin() {
     git clone --depth=1 "$url" "$dest"
     ok "$name cloned."
   else
-    warn "$name already exists — pulling updates..."
+    warn "$name already exists — updating..."
     git -C "$dest" pull --ff-only --quiet 2>/dev/null || true
   fi
 }
 
-clone_plugin "zsh-completions"              "https://github.com/zsh-users/zsh-completions"              "$ZSH_CUSTOM/plugins/zsh-completions"
-clone_plugin "fzf-tab"                      "https://github.com/Aloxaf/fzf-tab"                         "$ZSH_CUSTOM/plugins/fzf-tab"
-clone_plugin "you-should-use"               "https://github.com/MichaelAquilina/zsh-you-should-use"     "$ZSH_CUSTOM/plugins/you-should-use"
-clone_plugin "zsh-autosuggestions"          "https://github.com/zsh-users/zsh-autosuggestions"          "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
-clone_plugin "zsh-history-substring-search" "https://github.com/zsh-users/zsh-history-substring-search" "$ZSH_CUSTOM/plugins/zsh-history-substring-search"
-clone_plugin "zsh-syntax-highlighting"      "https://github.com/zsh-users/zsh-syntax-highlighting"      "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
+clone_omz_plugins() {
+  local zsh_custom="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+  clone_plugin "zsh-completions"              "https://github.com/zsh-users/zsh-completions"              "$zsh_custom/plugins/zsh-completions"
+  clone_plugin "fzf-tab"                      "https://github.com/Aloxaf/fzf-tab"                         "$zsh_custom/plugins/fzf-tab"
+  clone_plugin "you-should-use"               "https://github.com/MichaelAquilina/zsh-you-should-use"     "$zsh_custom/plugins/you-should-use"
+  clone_plugin "zsh-autosuggestions"          "https://github.com/zsh-users/zsh-autosuggestions"          "$zsh_custom/plugins/zsh-autosuggestions"
+  clone_plugin "zsh-history-substring-search" "https://github.com/zsh-users/zsh-history-substring-search" "$zsh_custom/plugins/zsh-history-substring-search"
+  clone_plugin "zsh-syntax-highlighting"      "https://github.com/zsh-users/zsh-syntax-highlighting"      "$zsh_custom/plugins/zsh-syntax-highlighting"
+}
 
-# ── 6. Deploy Configuration Files ─────────────────────────────────
-log "Deploying configurations..."
-
-mkdir -p "$HOME/.config/fastfetch"
-
+# ── 6. Deploy Configs ─────────────────────────────────────────────
 backup_file() {
   local file="$1"
   if [ -f "$file" ] && [ ! -L "$file" ]; then
@@ -256,65 +274,257 @@ backup_file() {
   fi
 }
 
-backup_file "$HOME/.zshrc"
-backup_file "$HOME/.config/starship.toml"
-backup_file "$HOME/.config/fastfetch/config.jsonc"
+deploy_configs() {
+  log "Deploying configuration files..."
+  mkdir -p "$HOME/.config/fastfetch"
 
-cp "$SCRIPT_DIR/config/zshrc"          "$HOME/.zshrc"
-cp "$SCRIPT_DIR/config/starship.toml"   "$HOME/.config/starship.toml"
-cp "$SCRIPT_DIR/config/fastfetch.jsonc" "$HOME/.config/fastfetch/config.jsonc"
+  backup_file "$HOME/.zshrc"
+  backup_file "$HOME/.config/starship.toml"
+  backup_file "$HOME/.config/fastfetch/config.jsonc"
 
-# ── 7. Configure Terminal ──────────────────────────────────────────
-if [[ "$TERMINAL" == "gnome-console" ]]; then
-  if command -v gsettings &>/dev/null; then
-    log "Configuring GNOME Console..."
-    gsettings set org.gnome.Console use-system-font false 2>/dev/null || true
-    gsettings set org.gnome.Console custom-font 'JetBrainsMono Nerd Font 13' 2>/dev/null || true
-    gsettings set org.gnome.Console theme 'night' 2>/dev/null || true
-    gsettings set org.gnome.Console scrollback-lines 10000 2>/dev/null || true
-    if [ -f "$SCRIPT_DIR/config/gnome-console.dconf" ] && command -v dconf &>/dev/null; then
-      dconf load /org/gnome/Console/ < "$SCRIPT_DIR/config/gnome-console.dconf" 2>/dev/null || true
+  cp "$SCRIPT_DIR/config/zshrc"          "$HOME/.zshrc"
+  cp "$SCRIPT_DIR/config/starship.toml"   "$HOME/.config/starship.toml"
+  cp "$SCRIPT_DIR/config/fastfetch.jsonc" "$HOME/.config/fastfetch/config.jsonc"
+
+  if [[ "$TERMINAL" == "gnome-console" ]]; then
+    if command -v gsettings &>/dev/null; then
+      log "Configuring GNOME Console..."
+      gsettings set org.gnome.Console use-system-font false 2>/dev/null || true
+      gsettings set org.gnome.Console custom-font 'JetBrainsMono Nerd Font 13' 2>/dev/null || true
+      gsettings set org.gnome.Console theme 'night' 2>/dev/null || true
+      gsettings set org.gnome.Console scrollback-lines 10000 2>/dev/null || true
+      if [ -f "$SCRIPT_DIR/config/gnome-console.dconf" ] && command -v dconf &>/dev/null; then
+        dconf load /org/gnome/Console/ < "$SCRIPT_DIR/config/gnome-console.dconf" 2>/dev/null || true
+      fi
+      ok "GNOME Console configured."
     fi
-    ok "GNOME Console configured."
+  elif [[ "$TERMINAL" == "ghostty" ]]; then
+    mkdir -p "$HOME/.config/ghostty"
+    if [ -f "$SCRIPT_DIR/config/ghostty.config" ]; then
+      backup_file "$HOME/.config/ghostty/config"
+      cp "$SCRIPT_DIR/config/ghostty.config" "$HOME/.config/ghostty/config"
+      ok "Ghostty configured."
+    fi
   fi
-elif [[ "$TERMINAL" == "ghostty" ]]; then
-  mkdir -p "$HOME/.config/ghostty"
-  if [ -f "$SCRIPT_DIR/config/ghostty.config" ]; then
-    backup_file "$HOME/.config/ghostty/config"
-    cp "$SCRIPT_DIR/config/ghostty.config" "$HOME/.config/ghostty/config"
-    ok "Ghostty configured."
-  fi
-fi
+  ok "Configurations deployed."
+}
 
-ok "Configurations deployed."
-
-# ── 8. Change Default Shell to Zsh ────────────────────────────────
-ZSH_PATH="$(command -v zsh 2>/dev/null || true)"
-if [ -n "$ZSH_PATH" ]; then
-  CURRENT_SHELL="$(getent passwd "$USER" 2>/dev/null | cut -d: -f7 || echo "$SHELL")"
-  if [ "$CURRENT_SHELL" != "$ZSH_PATH" ]; then
-    log "Setting default shell to zsh..."
-    if grep -qx "$ZSH_PATH" /etc/shells 2>/dev/null; then
-      chsh -s "$ZSH_PATH" || warn "Could not change default shell with chsh. Run: chsh -s $ZSH_PATH"
-      ok "Default shell set to zsh (takes effect on next login)."
+# ── 7. Shell & Atuin Setup ────────────────────────────────────────
+change_default_shell() {
+  local zsh_path
+  zsh_path="$(command -v zsh 2>/dev/null || true)"
+  if [ -n "$zsh_path" ]; then
+    local current_shell
+    current_shell="$(getent passwd "$USER" 2>/dev/null | cut -d: -f7 || echo "$SHELL")"
+    if [ "$current_shell" != "$zsh_path" ]; then
+      log "Setting default login shell to zsh..."
+      if grep -qx "$zsh_path" /etc/shells 2>/dev/null; then
+        chsh -s "$zsh_path" || warn "Could not change default shell with chsh. Run: chsh -s $zsh_path"
+        ok "Default shell set to zsh (active on next login)."
+      else
+        warn "$zsh_path is not listed in /etc/shells."
+      fi
     else
-      warn "$ZSH_PATH is not in /etc/shells. Add it with: echo $ZSH_PATH | sudo tee -a /etc/shells"
+      ok "zsh is already your default shell."
     fi
-  else
-    log "zsh is already the default shell."
   fi
-fi
+}
 
-# ── 9. Import Shell History into Atuin ────────────────────────────
-if command -v atuin &>/dev/null; then
-  log "Importing history into Atuin..."
-  atuin import auto 2>/dev/null || true
-  ok "Atuin history setup complete."
-fi
+setup_atuin_history() {
+  if command -v atuin &>/dev/null; then
+    log "Importing shell history into Atuin..."
+    atuin import auto 2>/dev/null || true
+    ok "Atuin setup complete."
+  fi
+}
+
+# ── 8. Hatter Icon Theme (Mibea/Hatter) ────────────────────────────
+install_hatter_icons() {
+  log "Installing Hatter Icon Theme (https://github.com/Mibea/Hatter)..."
+  local icon_dir="$HOME/.local/share/icons"
+  mkdir -p "$icon_dir"
+  local tmp_dir="/tmp/hatter-icons-$$"
+  rm -rf "$tmp_dir"
+
+  if git clone --depth=1 https://github.com/Mibea/Hatter.git "$tmp_dir"; then
+    if [ -f "$tmp_dir/install.sh" ]; then
+      (cd "$tmp_dir" && bash ./install.sh -d "$icon_dir" 2>/dev/null || bash ./install.sh 2>/dev/null || true)
+    fi
+    # Ensure fallback copy if installer placed elsewhere
+    if [ -d "$tmp_dir/Hatter" ] && [ ! -d "$icon_dir/Hatter" ]; then
+      cp -r "$tmp_dir/Hatter"* "$icon_dir/" 2>/dev/null || true
+    fi
+    rm -rf "$tmp_dir"
+    gtk-update-icon-cache -f "$icon_dir/Hatter" 2>/dev/null || true
+    
+    if command -v gsettings &>/dev/null; then
+      gsettings set org.gnome.desktop.interface icon-theme 'Hatter' 2>/dev/null || true
+      ok "Hatter Icon Theme set as active GNOME icon theme."
+    fi
+    ok "Hatter Icon Theme installed to ~/.local/share/icons."
+  else
+    warn "Could not clone Hatter repository. Please check your internet connection."
+  fi
+}
+
+# ── 9. Productivity Suite ─────────────────────────────────────────
+install_productivity_apps() {
+  echo ""
+  echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────╮${RESET}"
+  echo -e "${TEAL}${BOLD}│       Productivity & Developer Applications       │${RESET}"
+  echo -e "${TEAL}${BOLD}╰────────────────────────────────────────────────────╯${RESET}"
+  echo "  1) Zed Editor"
+  echo "  2) Google Antigravity & Antigravity CLI"
+  echo "  3) Android Studio"
+  echo "  4) ONLYOFFICE Desktop Editors"
+  echo "  5) Install All Productivity Apps (recommended)"
+  echo "  0) Skip"
+  echo ""
+  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [1-5 / 0]: " APP_CHOICE
+  APP_CHOICE="${APP_CHOICE:-5}"
+
+  [[ "$APP_CHOICE" == "0" ]] && return 0
+
+  # Zed Editor
+  if [[ "$APP_CHOICE" == "1" || "$APP_CHOICE" == "5" ]]; then
+    log "Installing Zed Editor..."
+    if command -v zed &>/dev/null; then
+      ok "Zed is already installed."
+    elif [[ "$DISTRO" == "arch" ]]; then
+      ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed zed-editor 2>/dev/null || \
+        ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed zed 2>/dev/null || \
+        curl -f https://zed.dev/install.sh | sh
+      ok "Zed installed."
+    elif [[ "$DISTRO" == "fedora" ]]; then
+      curl -f https://zed.dev/install.sh | sh 2>/dev/null || \
+        (flatpak install -y flathub dev.zed.Zed 2>/dev/null || warn "Zed install failed.")
+      ok "Zed installed."
+    fi
+  fi
+
+  # Google Antigravity & Antigravity CLI
+  if [[ "$APP_CHOICE" == "2" || "$APP_CHOICE" == "5" ]]; then
+    log "Installing Google Antigravity & CLI..."
+    if command -v agy &>/dev/null || command -v antigravity &>/dev/null; then
+      ok "Antigravity is already installed."
+    else
+      if [[ "$DISTRO" == "arch" ]]; then
+        ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed antigravity-bin 2>/dev/null || \
+          ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed antigravity 2>/dev/null || true
+      fi
+      if ! command -v agy &>/dev/null && ! command -v antigravity &>/dev/null; then
+        curl -fsSL https://antigravity.google/install.sh 2>/dev/null | bash 2>/dev/null || \
+          warn "Please visit https://antigravity.google to download Antigravity."
+      fi
+      ok "Antigravity processed."
+    fi
+  fi
+
+  # Android Studio
+  if [[ "$APP_CHOICE" == "3" || "$APP_CHOICE" == "5" ]]; then
+    log "Installing Android Studio..."
+    if command -v android-studio &>/dev/null || (command -v flatpak &>/dev/null && flatpak list 2>/dev/null | grep -q "com.google.AndroidStudio"); then
+      ok "Android Studio is already installed."
+    elif [[ "$DISTRO" == "arch" ]]; then
+      ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed android-studio 2>/dev/null || \
+        (flatpak install -y flathub com.google.AndroidStudio 2>/dev/null || warn "Android Studio install failed.")
+      ok "Android Studio installed."
+    elif [[ "$DISTRO" == "fedora" ]]; then
+      flatpak install -y flathub com.google.AndroidStudio 2>/dev/null || \
+        warn "Could not install Android Studio. Install via Flatpak or developer.android.com"
+    fi
+  fi
+
+  # ONLYOFFICE
+  if [[ "$APP_CHOICE" == "4" || "$APP_CHOICE" == "5" ]]; then
+    log "Installing ONLYOFFICE Desktop Editors..."
+    if command -v onlyoffice-desktopeditors &>/dev/null || (command -v flatpak &>/dev/null && flatpak list 2>/dev/null | grep -q "org.onlyoffice.desktopeditors"); then
+      ok "ONLYOFFICE is already installed."
+    elif [[ "$DISTRO" == "arch" ]]; then
+      ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed onlyoffice-bin 2>/dev/null || \
+        (flatpak install -y flathub org.onlyoffice.desktopeditors 2>/dev/null || warn "ONLYOFFICE install failed.")
+      ok "ONLYOFFICE installed."
+    elif [[ "$DISTRO" == "fedora" ]]; then
+      flatpak install -y flathub org.onlyoffice.desktopeditors 2>/dev/null || \
+        sudo dnf install -y onlyoffice-desktopeditors 2>/dev/null || \
+        warn "ONLYOFFICE install failed."
+    fi
+  fi
+}
+
+# ── Complete Setup Workflow ───────────────────────────────────────
+run_terminal_setup() {
+  setup_aur_helper
+  choose_terminal
+  purge_alternate_terminal
+  install_system_packages
+  install_oh_my_zsh
+  clone_omz_plugins
+  deploy_configs
+  change_default_shell
+  setup_atuin_history
+}
+
+run_full_setup() {
+  run_terminal_setup
+  echo ""
+  ask "Do you want to install the Hatter Icon Theme? [Y/n]"
+  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [Y/n] (default: Y): " DO_ICONS
+  DO_ICONS="${DO_ICONS:-Y}"
+  [[ "$DO_ICONS" =~ ^[Yy]$ ]] && install_hatter_icons
+
+  echo ""
+  ask "Do you want to install Productivity & Dev Apps (Zed, Antigravity, Android Studio, ONLYOFFICE)? [Y/n]"
+  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [Y/n] (default: Y): " DO_APPS
+  DO_APPS="${DO_APPS:-Y}"
+  [[ "$DO_APPS" =~ ^[Yy]$ ]] && install_productivity_apps
+}
+
+# ── Main Menu ─────────────────────────────────────────────────────
+detect_distro
 
 echo ""
-echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────╮${RESET}"
-echo -e "${TEAL}${BOLD}│   ✓  Installation Complete!                        │${RESET}"
-echo -e "${TEAL}│   Run: exec zsh   (or log out and back in)         │${RESET}"
-echo -e "${TEAL}${BOLD}╰────────────────────────────────────────────────────╯${RESET}"
+echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────────╮${RESET}"
+echo -e "${TEAL}${BOLD}│          Axz01 Dotfiles — Master Installer             │${RESET}"
+echo -e "${TEAL}${BOLD}│   Terminal │ Productivity Apps │ Desktop Customization │${RESET}"
+echo -e "${TEAL}${BOLD}╰────────────────────────────────────────────────────────╯${RESET}"
+echo ""
+echo "Select installation mode:"
+echo "  1) Full Workstation Setup (Terminal + Configs + Hatter Icons + Apps)"
+echo "  2) Terminal Setup Only    (Zsh, Starship, Fastfetch, Atuin, Ghostty/Console)"
+echo "  3) Install Hatter Icons   (Rounded icon theme from Mibea/Hatter)"
+echo "  4) Productivity Suite     (Zed, Antigravity, Android Studio, ONLYOFFICE)"
+echo "  5) Deploy Configs Only    (Sync .zshrc, starship.toml, fastfetch, terminal)"
+echo "  0) Exit"
+echo ""
+read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [1-5 / 0] (default: 1): " MENU_CHOICE
+MENU_CHOICE="${MENU_CHOICE:-1}"
+
+case "$MENU_CHOICE" in
+  1) run_full_setup ;;
+  2) run_terminal_setup ;;
+  3) install_hatter_icons ;;
+  4)
+    setup_aur_helper
+    install_productivity_apps
+    ;;
+  5)
+    choose_terminal
+    deploy_configs
+    ;;
+  0)
+    log "Exiting installer."
+    exit 0
+    ;;
+  *)
+    warn "Invalid choice, running Full Workstation Setup."
+    run_full_setup
+    ;;
+esac
+
+echo ""
+echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────────╮${RESET}"
+echo -e "${TEAL}${BOLD}│   ✓  Installation Complete!                            │${RESET}"
+echo -e "${TEAL}│   Run: exec zsh   (or log out and back in)             │${RESET}"
+echo -e "${TEAL}${BOLD}╰────────────────────────────────────────────────────────╯${RESET}"
 echo ""
