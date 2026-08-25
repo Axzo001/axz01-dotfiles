@@ -61,7 +61,7 @@ plugins=(
 # Source Oh My Zsh (handles compinit internally)
 source "$ZSH/oh-my-zsh.sh"
 
-# ── Completion Styling ────────────────────────────────────
+# ── Completion Styling ────────────────────────────────────────────
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list \
   'm:{a-zA-Z}={A-Za-z}' \
@@ -152,10 +152,6 @@ export FZF_CTRL_R_OPTS="--preview 'echo {}' --preview-window=down:3:wrap"
 # ── Aliases — Navigation ──────────────────────────────────────────
 alias ..='cd ..'
 alias ...='cd ../..'
-alias ....='cd ../../..'
-alias .....='cd ../../../..'
-alias ~='cd ~'
-alias -- -='cd -'
 alias d='dirs -v'
 
 # ── Aliases — Better LS (eza) ─────────────────────────────────────
@@ -163,7 +159,6 @@ alias ls='eza --icons --group-directories-first --color=always'
 alias ll='eza --icons --group-directories-first --color=always -lh'
 alias la='eza --icons --group-directories-first --color=always -lah'
 alias lt='eza --icons --group-directories-first --color=always --tree --level=2'
-alias lta='eza --icons --group-directories-first --color=always --tree --level=3'
 alias l='eza --icons --group-directories-first --color=always -1'
 alias lsize='eza --icons --color=always -lah --sort=size'
 alias lmod='eza --icons --color=always -lah --sort=modified'
@@ -174,15 +169,12 @@ alias catp='bat'
 alias cath='bat -l help'
 
 # ── Aliases — Better Find (fd / fdfind) ────────────────────────────
-alias find="$_fd_cmd"
 alias fdf="$_fd_cmd --type f"
 alias fdd="$_fd_cmd --type d"
 unset _fd_cmd
 
 # ── Aliases — Better Grep (ripgrep) ──────────────────────────────
-alias grep='rg'
 alias rgf='rg --files-with-matches'
-alias rgi='rg -i'
 
 # ── Aliases — System ──────────────────────────────────────────────
 alias df='df -h'
@@ -190,7 +182,6 @@ alias du='du -sh'
 alias free='free -h'
 alias psa='ps aux | rg'
 alias top='btop'
-alias cls='clear'
 alias c='clear'
 alias h='history | tail -30'
 alias hg='history | rg'
@@ -204,7 +195,6 @@ alias timer='date; time read -r _; date'
 alias reload='exec zsh && echo "✅ zshrc reloaded"'
 alias zshconfig='${EDITOR:-nano} ~/.zshrc'
 alias starconfig='${EDITOR:-nano} ~/.config/starship.toml'
-alias consoleconfig='gsettings list-recursively org.gnome.Console 2>/dev/null || echo "GNOME Console not configured"'
 alias fetchconfig='${EDITOR:-nano} ~/.config/fastfetch/config.jsonc'
 
 # ── Aliases — Package Manager (distro-aware) ──────────────────────
@@ -255,9 +245,7 @@ alias gco='git checkout'
 alias gcob='git checkout -b'
 alias gcom='git commit -m'
 alias gcoa='git commit --amend --no-edit'
-alias gcoA='git commit --amend'
 alias gaa='git add --all'
-alias gad='git add .'
 alias gp='git push'
 alias gpf='git push --force-with-lease'
 alias gps='git push --set-upstream origin HEAD'
@@ -265,8 +253,6 @@ alias gpl='git pull'
 alias gplr='git pull --rebase'
 alias gf='git fetch --all --prune'
 alias glog='git log --oneline --graph --decorate --all -20'
-alias gloga='git log --oneline --graph --decorate --all'
-alias glogv='git log --stat -10'
 alias gdiff='git diff'
 alias gds='git diff --staged'
 alias grb='git rebase'
@@ -279,7 +265,6 @@ alias gstl='git stash list'
 alias gbr='git branch -av'
 alias gbrd='git branch -d'
 alias gclone='git clone'
-alias gsubup='git submodule update --init --recursive'
 
 # ── Aliases — Network ─────────────────────────────────────────────
 alias myip='curl -s ifconfig.me && echo'
@@ -329,7 +314,7 @@ HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND="fg=#00e5a0,bold,underline"
 HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_NOT_FOUND="fg=#ef5350,bold"
 HISTORY_SUBSTRING_SEARCH_GLOBBING_FLAGS="i"
 
-# ── Keyboard Shortcuts ────────────────────────────────────────────
+# ── Keyboard Shortcuts ────────────────────────────────────
 # History navigation with arrows and Ctrl+P/N (supports application cursor modes)
 bindkey '^[[A' history-substring-search-up
 bindkey '^[OA' history-substring-search-up
