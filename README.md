@@ -43,7 +43,7 @@ The installer automatically detects your distribution, builds `paru` or `yay` if
   * **AppIndicator Support** — System tray icons in top bar
   * **Blur my Shell** — Modern blur effect on panel and overview
   * **Caffeine** — Quick toggle to inhibit screen sleep/lock
-  * **GSConnect** — Complete wireless Android integration (KDE Connect protocol)
+  * **GSConnect** — Complete wireless Android integration (KDE Connect protocol, with automatic firewall rule configuration for ports 1714–1764 TCP/UDP)
   * **Just Perfection** — Fine-grained GNOME Shell desktop customization
 * **Productivity Suite**:
   * **Zed Editor** — High-performance code editor

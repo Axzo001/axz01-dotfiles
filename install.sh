@@ -389,6 +389,39 @@ install_extension_manager() {
   ok "Extension Manager processed."
 }
 
+configure_gsconnect_firewall() {
+  log "Configuring firewall for GSConnect (ports 1714-1764 TCP/UDP)..."
+  local fw_configured=false
+
+  # 1. firewalld (default on Fedora, common on Arch)
+  if command -v firewall-cmd &>/dev/null; then
+    if systemctl is-active --quiet firewalld 2>/dev/null || firewall-cmd --state &>/dev/null; then
+      log "Adding GSConnect / KDE Connect rules to firewalld..."
+      sudo firewall-cmd --permanent --zone=public --add-service=kdeconnect 2>/dev/null || \
+        sudo firewall-cmd --permanent --add-port=1714-1764/tcp --add-port=1714-1764/udp 2>/dev/null || true
+      sudo firewall-cmd --reload 2>/dev/null || true
+      fw_configured=true
+      ok "firewalld rules configured for GSConnect."
+    fi
+  fi
+
+  # 2. UFW (Uncomplicated Firewall)
+  if command -v ufw &>/dev/null; then
+    if sudo ufw status 2>/dev/null | grep -qw "active"; then
+      log "Adding GSConnect rules to UFW..."
+      sudo ufw allow 1714:1764/tcp comment 'GSConnect' 2>/dev/null || true
+      sudo ufw allow 1714:1764/udp comment 'GSConnect' 2>/dev/null || true
+      sudo ufw reload 2>/dev/null || true
+      fw_configured=true
+      ok "UFW rules configured for GSConnect."
+    fi
+  fi
+
+  if [ "$fw_configured" = false ]; then
+    log "No active firewall (firewalld/ufw) detected. Ports 1714-1764 TCP/UDP are open by default."
+  fi
+}
+
 install_gnome_extension_by_uuid() {
   local uuid="$1"
   local name="$2"
@@ -398,6 +431,9 @@ install_gnome_extension_by_uuid() {
   if command -v gnome-extensions &>/dev/null; then
     if gnome-extensions list 2>/dev/null | grep -q "$uuid"; then
       gnome-extensions enable "$uuid" 2>/dev/null || true
+      if [[ "$uuid" == "gsconnect@andyholmes.github.io" ]]; then
+        configure_gsconnect_firewall
+      fi
       ok "$name is already installed and enabled."
       return 0
     fi
@@ -424,6 +460,9 @@ install_gnome_extension_by_uuid() {
         unzip -qo "$tmp_zip" -d "$HOME/.local/share/gnome-shell/extensions/$uuid" 2>/dev/null || true
       fi
       rm -f "$tmp_zip"
+      if [[ "$uuid" == "gsconnect@andyholmes.github.io" ]]; then
+        configure_gsconnect_firewall
+      fi
       ok "$name installed from GNOME Extensions repository."
       return 0
     fi
@@ -456,6 +495,9 @@ install_gnome_extension_by_uuid() {
 
   if command -v gnome-extensions &>/dev/null; then
     gnome-extensions enable "$uuid" 2>/dev/null || true
+  fi
+  if [[ "$uuid" == "gsconnect@andyholmes.github.io" ]]; then
+    configure_gsconnect_firewall
   fi
   ok "$name processed."
 }
