@@ -2,7 +2,7 @@
 
 My personal Linux workstation setup for **Arch Linux** and **Fedora Workstation**.
 
-An all-in-one dotfiles repository featuring a teal/mint glassmorphic terminal, modern CLI utilities, desktop aesthetics, developer productivity tools, and media enhancements.
+An all-in-one dotfiles repository featuring a teal/mint glassmorphic terminal, desktop aesthetics & GNOME extensions, developer productivity suite, and media enhancements.
 
 ![Showcase](assets/showcase.png)
 
@@ -18,12 +18,13 @@ chmod +x install.sh
 ### Interactive Installer Options
 
 When running `./install.sh`, you can choose:
-* **1) Full Workstation Setup** — Complete setup with terminal, configs, Hatter icons, productivity suite, and Spotify + SpotX
+* **1) Full Workstation Setup** — Complete setup with terminal, configs, Hatter icons, GNOME extensions, apps, and Spotify + SpotX
 * **2) Terminal Setup Only** — Zsh, OMZ, plugins, Starship, Fastfetch, Atuin, and terminal profiles
-* **3) Install Hatter Icons** — Install and apply the rounded Hatter icon theme ([Mibea/Hatter](https://github.com/Mibea/Hatter))
-* **4) Productivity Suite** — Install Zed, Antigravity, Android Studio, and ONLYOFFICE
-* **5) Spotify & SpotX-Bash** — Install Spotify client and run SpotX-Bash for ad-blocking and UI enhancements
-* **6) Deploy Configs Only** — Sync configuration files to `~/.config` and `~/.zshrc`
+* **3) Desktop & Icons** — Install and apply the rounded Hatter icon theme ([Mibea/Hatter](https://github.com/Mibea/Hatter))
+* **4) GNOME Extensions Suite** — Install Extension Manager GUI and top 5 essential GNOME extensions
+* **5) Productivity Suite** — Install Zed, Antigravity, Android Studio, and ONLYOFFICE
+* **6) Spotify & SpotX-Bash** — Install Spotify client and run SpotX-Bash for ad-blocking and UI enhancements
+* **7) Deploy Configs Only** — Sync configuration files to `~/.config` and `~/.zshrc`
 
 The installer automatically detects your distribution, builds `paru` or `yay` if missing on Arch Linux, downloads JetBrainsMono Nerd Font, and handles terminal selection (GNOME Console or Ghostty).
 
@@ -33,7 +34,14 @@ The installer automatically detects your distribution, builds `paru` or `yay` if
 * **Terminal**: Dark teal glassmorphic profiles for GNOME Console and Ghostty.
 * **System Info**: Fastfetch with compact small logo and storage monitoring.
 * **History**: Atuin with enhanced fuzzy search and command history tracking.
-* **Icons & Desktop**: [Hatter Icon Theme](https://github.com/Mibea/Hatter) for rounded, modern GNOME/desktop styling.
+* **Icons & Themes**: [Hatter Icon Theme](https://github.com/Mibea/Hatter) for rounded, modern desktop styling.
+* **GNOME Extensions & Manager**:
+  * **Extension Manager** — Clean native GUI for managing and discovering GNOME extensions
+  * **AppIndicator Support** — System tray icons in top bar
+  * **Blur my Shell** — Modern blur effect on panel and overview
+  * **Caffeine** — Quick toggle to inhibit screen sleep/lock
+  * **GSConnect** — Complete wireless Android integration (KDE Connect protocol)
+  * **Just Perfection** — Fine-grained GNOME Shell desktop customization
 * **Productivity Suite**:
   * **Zed Editor** — High-performance code editor
   * **Google Antigravity & CLI** — Autonomous agentic development environment

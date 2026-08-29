@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
 #  Dotfiles Installer — Universal Linux Workstation Setup
-#  Terminal │ Productivity Apps │ Desktop Customization │ Media
+#  Terminal │ Desktop & Extensions │ Productivity │ Media
 #  Supports: Arch Linux (paru/yay/pacman), Fedora Workstation (dnf)
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
@@ -367,7 +367,147 @@ install_hatter_icons() {
   fi
 }
 
-# ── 9. Productivity Suite ─────────────────────────────────────────
+# ── 9. GNOME Extensions & Extension Manager ───────────────────────
+install_extension_manager() {
+  log "Installing Extension Manager (GUI)..."
+  if command -v extension-manager &>/dev/null || (command -v flatpak &>/dev/null && flatpak list 2>/dev/null | grep -q "com.mattjakeman.ExtensionManager"); then
+    ok "Extension Manager is already installed."
+    return 0
+  fi
+
+  if [[ "$DISTRO" == "arch" ]]; then
+    ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed extension-manager 2>/dev/null || \
+      ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed gnome-shell-extension-manager 2>/dev/null || \
+      (flatpak install -y flathub com.mattjakeman.ExtensionManager 2>/dev/null || warn "Extension Manager install failed.")
+  elif [[ "$DISTRO" == "fedora" ]]; then
+    sudo dnf install -y extension-manager 2>/dev/null || \
+      (flatpak install -y flathub com.mattjakeman.ExtensionManager 2>/dev/null || warn "Extension Manager install failed.")
+  else
+    if command -v flatpak &>/dev/null; then
+      flatpak install -y flathub com.mattjakeman.ExtensionManager 2>/dev/null || warn "Extension Manager install failed."
+    fi
+  fi
+  ok "Extension Manager processed."
+}
+
+install_gnome_extension_by_uuid() {
+  local uuid="$1"
+  local name="$2"
+  log "Installing GNOME extension: ${BOLD}$name${RESET} ($uuid)..."
+
+  # Check if already installed & enabled
+  if command -v gnome-extensions &>/dev/null; then
+    if gnome-extensions list 2>/dev/null | grep -q "$uuid"; then
+      gnome-extensions enable "$uuid" 2>/dev/null || true
+      ok "$name is already installed and enabled."
+      return 0
+    fi
+  fi
+
+  # Determine GNOME shell version
+  local gver="47"
+  if command -v gnome-shell &>/dev/null; then
+    gver="$(gnome-shell --version 2>/dev/null | awk '{print $3}' | cut -d. -f1 || echo "47")"
+  fi
+
+  # 1. Download directly from extensions.gnome.org API
+  local dl_url
+  dl_url="$(curl -sS "https://extensions.gnome.org/extension-info/?uuid=${uuid}&shell_version=${gver}" 2>/dev/null | grep -oP '"download_url":\s*"\K[^"]+' || true)"
+  
+  if [ -n "$dl_url" ]; then
+    local tmp_zip="/tmp/${uuid}-$$.zip"
+    if curl -fsSL "https://extensions.gnome.org${dl_url}" -o "$tmp_zip"; then
+      if command -v gnome-extensions &>/dev/null; then
+        gnome-extensions install --force "$tmp_zip" 2>/dev/null || true
+        gnome-extensions enable "$uuid" 2>/dev/null || true
+      else
+        mkdir -p "$HOME/.local/share/gnome-shell/extensions/$uuid"
+        unzip -qo "$tmp_zip" -d "$HOME/.local/share/gnome-shell/extensions/$uuid" 2>/dev/null || true
+      fi
+      rm -f "$tmp_zip"
+      ok "$name installed from GNOME Extensions repository."
+      return 0
+    fi
+  fi
+
+  # 2. Distro package fallback
+  if [[ "$DISTRO" == "arch" ]]; then
+    case "$uuid" in
+      "appindicatorsupport@rgcjonas.gmail.com")
+        ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed gnome-shell-extension-appindicator 2>/dev/null || true ;;
+      "blur-my-shell@aunetx")
+        ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed gnome-shell-extension-blur-my-shell 2>/dev/null || true ;;
+      "caffeine@patapon.info")
+        ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed gnome-shell-extension-caffeine 2>/dev/null || true ;;
+      "gsconnect@andyholmes.github.io")
+        ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed gnome-shell-extension-gsconnect 2>/dev/null || true ;;
+      "just-perfection-desktop@just-perfection")
+        ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed gnome-shell-extension-just-perfection 2>/dev/null || true ;;
+    esac
+  elif [[ "$DISTRO" == "fedora" ]]; then
+    case "$uuid" in
+      "appindicatorsupport@rgcjonas.gmail.com")
+        sudo dnf install -y gnome-shell-extension-appindicator 2>/dev/null || true ;;
+      "caffeine@patapon.info")
+        sudo dnf install -y gnome-shell-extension-caffeine 2>/dev/null || true ;;
+      "gsconnect@andyholmes.github.io")
+        sudo dnf install -y gnome-shell-extension-gsconnect 2>/dev/null || true ;;
+    esac
+  fi
+
+  if command -v gnome-extensions &>/dev/null; then
+    gnome-extensions enable "$uuid" 2>/dev/null || true
+  fi
+  ok "$name processed."
+}
+
+install_gnome_extensions_suite() {
+  echo ""
+  echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────╮${RESET}"
+  echo -e "${TEAL}${BOLD}│         GNOME Extensions & Extension Manager       │${RESET}"
+  echo -e "${TEAL}${BOLD}╰────────────────────────────────────────────────────╯${RESET}"
+  
+  install_extension_manager
+
+  echo ""
+  echo "Recommended GNOME Extensions:"
+  echo "  1) AppIndicator and KStatusNotifierItem Support"
+  echo "  2) Blur my Shell"
+  echo "  3) Caffeine"
+  echo "  4) GSConnect"
+  echo "  5) Just Perfection"
+  echo "  6) Install All Extensions (recommended)"
+  echo "  0) Skip Extensions"
+  echo ""
+  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [1-6 / 0] (default: 6): " EXT_CHOICE
+  EXT_CHOICE="${EXT_CHOICE:-6}"
+
+  [[ "$EXT_CHOICE" == "0" ]] && return 0
+
+  if command -v gsettings &>/dev/null; then
+    gsettings set org.gnome.shell disable-user-extensions false 2>/dev/null || true
+  fi
+
+  if [[ "$EXT_CHOICE" == "1" || "$EXT_CHOICE" == "6" ]]; then
+    install_gnome_extension_by_uuid "appindicatorsupport@rgcjonas.gmail.com" "AppIndicator Support"
+  fi
+  if [[ "$EXT_CHOICE" == "2" || "$EXT_CHOICE" == "6" ]]; then
+    install_gnome_extension_by_uuid "blur-my-shell@aunetx" "Blur my Shell"
+  fi
+  if [[ "$EXT_CHOICE" == "3" || "$EXT_CHOICE" == "6" ]]; then
+    install_gnome_extension_by_uuid "caffeine@patapon.info" "Caffeine"
+  fi
+  if [[ "$EXT_CHOICE" == "4" || "$EXT_CHOICE" == "6" ]]; then
+    install_gnome_extension_by_uuid "gsconnect@andyholmes.github.io" "GSConnect"
+  fi
+  if [[ "$EXT_CHOICE" == "5" || "$EXT_CHOICE" == "6" ]]; then
+    install_gnome_extension_by_uuid "just-perfection-desktop@just-perfection" "Just Perfection"
+  fi
+
+  ok "GNOME Extensions setup complete (log out and back in to apply Shell changes)."
+}
+
+# ── 10. Productivity Suite ────────────────────────────────────────
 install_productivity_apps() {
   echo ""
   echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────╮${RESET}"
@@ -452,7 +592,7 @@ install_productivity_apps() {
   fi
 }
 
-# ── 10. Spotify & SpotX-Bash ──────────────────────────────────────
+# ── 11. Spotify & SpotX-Bash ──────────────────────────────────────
 install_spotify_and_spotx() {
   echo ""
   echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────╮${RESET}"
@@ -515,11 +655,18 @@ run_terminal_setup() {
 
 run_full_setup() {
   run_terminal_setup
+  
   echo ""
   ask "Do you want to install the Hatter Icon Theme? [Y/n]"
   read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [Y/n] (default: Y): " DO_ICONS
   DO_ICONS="${DO_ICONS:-Y}"
   [[ "$DO_ICONS" =~ ^[Yy]$ ]] && install_hatter_icons
+
+  echo ""
+  ask "Do you want to install Extension Manager and GNOME Extensions? [Y/n]"
+  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [Y/n] (default: Y): " DO_EXTS
+  DO_EXTS="${DO_EXTS:-Y}"
+  [[ "$DO_EXTS" =~ ^[Yy]$ ]] && install_gnome_extensions_suite
 
   echo ""
   ask "Do you want to install Productivity & Dev Apps (Zed, Antigravity, Android Studio, ONLYOFFICE)? [Y/n]"
@@ -540,19 +687,20 @@ detect_distro
 echo ""
 echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────────╮${RESET}"
 echo -e "${TEAL}${BOLD}│          Axz01 Dotfiles — Master Installer             │${RESET}"
-echo -e "${TEAL}${BOLD}│   Terminal │ Productivity Apps │ Desktop Customization │${RESET}"
+echo -e "${TEAL}${BOLD}│   Terminal │ Desktop & Extensions │ Dev Apps │ Media   │${RESET}"
 echo -e "${TEAL}${BOLD}╰────────────────────────────────────────────────────────╯${RESET}"
 echo ""
 echo "Select installation mode:"
-echo "  1) Full Workstation Setup (Terminal + Configs + Hatter Icons + Apps + Spotify)"
+echo "  1) Full Workstation Setup (Terminal + Configs + Icons + Extensions + Apps + Spotify)"
 echo "  2) Terminal Setup Only    (Zsh, Starship, Fastfetch, Atuin, Ghostty/Console)"
-echo "  3) Install Hatter Icons   (Rounded icon theme from Mibea/Hatter)"
-echo "  4) Productivity Suite     (Zed, Antigravity, Android Studio, ONLYOFFICE)"
-echo "  5) Spotify & SpotX-Bash   (Spotify Desktop + SpotX Adblock/Theme Patcher)"
-echo "  6) Deploy Configs Only    (Sync .zshrc, starship.toml, fastfetch, terminal)"
+echo "  3) Desktop & Icons        (Hatter Icon Theme from Mibea/Hatter)"
+echo "  4) GNOME Extensions Suite (Extension Manager GUI + Top 5 GNOME Extensions)"
+echo "  5) Productivity Suite     (Zed, Antigravity, Android Studio, ONLYOFFICE)"
+echo "  6) Spotify & SpotX-Bash   (Spotify Desktop + SpotX Adblock/Theme Patcher)"
+echo "  7) Deploy Configs Only    (Sync .zshrc, starship.toml, fastfetch, terminal)"
 echo "  0) Exit"
 echo ""
-read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [1-6 / 0] (default: 1): " MENU_CHOICE
+read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [1-7 / 0] (default: 1): " MENU_CHOICE
 MENU_CHOICE="${MENU_CHOICE:-1}"
 
 case "$MENU_CHOICE" in
@@ -561,13 +709,17 @@ case "$MENU_CHOICE" in
   3) install_hatter_icons ;;
   4)
     setup_aur_helper
-    install_productivity_apps
+    install_gnome_extensions_suite
     ;;
   5)
     setup_aur_helper
-    install_spotify_and_spotx
+    install_productivity_apps
     ;;
   6)
+    setup_aur_helper
+    install_spotify_and_spotx
+    ;;
+  7)
     choose_terminal
     deploy_configs
     ;;
