@@ -2,7 +2,7 @@
 
 My personal Linux workstation setup for **Arch Linux** and **Fedora Workstation**.
 
-An all-in-one dotfiles repository featuring a teal/mint glassmorphic terminal, modern CLI utilities, desktop aesthetics, and developer productivity tools.
+An all-in-one dotfiles repository featuring a teal/mint glassmorphic terminal, modern CLI utilities, desktop aesthetics, developer productivity tools, and media enhancements.
 
 ![Showcase](assets/showcase.png)
 
@@ -18,11 +18,12 @@ chmod +x install.sh
 ### Interactive Installer Options
 
 When running `./install.sh`, you can choose:
-* **1) Full Workstation Setup** — Complete setup with terminal, configs, Hatter icons, and productivity tools
+* **1) Full Workstation Setup** — Complete setup with terminal, configs, Hatter icons, productivity suite, and Spotify + SpotX
 * **2) Terminal Setup Only** — Zsh, OMZ, plugins, Starship, Fastfetch, Atuin, and terminal profiles
 * **3) Install Hatter Icons** — Install and apply the rounded Hatter icon theme ([Mibea/Hatter](https://github.com/Mibea/Hatter))
 * **4) Productivity Suite** — Install Zed, Antigravity, Android Studio, and ONLYOFFICE
-* **5) Deploy Configs Only** — Sync configuration files to `~/.config` and `~/.zshrc`
+* **5) Spotify & SpotX-Bash** — Install Spotify client and run SpotX-Bash for ad-blocking and UI enhancements
+* **6) Deploy Configs Only** — Sync configuration files to `~/.config` and `~/.zshrc`
 
 The installer automatically detects your distribution, builds `paru` or `yay` if missing on Arch Linux, downloads JetBrainsMono Nerd Font, and handles terminal selection (GNOME Console or Ghostty).
 
@@ -38,6 +39,7 @@ The installer automatically detects your distribution, builds `paru` or `yay` if
   * **Google Antigravity & CLI** — Autonomous agentic development environment
   * **Android Studio** — Android app development IDE
   * **ONLYOFFICE** — Complete local office document suite
+* **Media & Entertainment**: Spotify client with [SpotX-Bash](https://github.com/SpotX-Official/SpotX-Bash) adblock and feature patcher.
 * **CLI Power Tools**: `eza`, `bat`, `zoxide`, `ripgrep`, `fd`, and `fzf`.
 
 ## Quick Aliases & Helpers

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
 #  Dotfiles Installer — Universal Linux Workstation Setup
-#  Terminal │ Productivity Apps │ Desktop Customization
+#  Terminal │ Productivity Apps │ Desktop Customization │ Media
 #  Supports: Arch Linux (paru/yay/pacman), Fedora Workstation (dnf)
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
@@ -452,6 +452,54 @@ install_productivity_apps() {
   fi
 }
 
+# ── 10. Spotify & SpotX-Bash ──────────────────────────────────────
+install_spotify_and_spotx() {
+  echo ""
+  echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────╮${RESET}"
+  echo -e "${TEAL}${BOLD}│         Spotify & SpotX-Bash Adblock Patcher       │${RESET}"
+  echo -e "${TEAL}${BOLD}╰────────────────────────────────────────────────────╯${RESET}"
+  log "Installing Spotify & SpotX-Bash (Adblock & Feature Patcher)..."
+
+  # 1. Check/Install Spotify
+  if command -v spotify &>/dev/null || (command -v flatpak &>/dev/null && flatpak list 2>/dev/null | grep -q "com.spotify.Client"); then
+    ok "Spotify is already installed."
+  else
+    log "Installing Spotify client..."
+    if [[ "$DISTRO" == "arch" ]]; then
+      if pacman -Si spotify-launcher &>/dev/null; then
+        sudo pacman -S --noconfirm --needed spotify-launcher 2>/dev/null || \
+          ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed spotify 2>/dev/null || \
+          (flatpak install -y flathub com.spotify.Client 2>/dev/null || warn "Spotify install failed.")
+      else
+        ${AUR_HELPER:-sudo pacman} -S --noconfirm --needed spotify 2>/dev/null || \
+          (flatpak install -y flathub com.spotify.Client 2>/dev/null || warn "Spotify install failed.")
+      fi
+      ok "Spotify installed."
+    elif [[ "$DISTRO" == "fedora" ]]; then
+      if command -v flatpak &>/dev/null; then
+        flatpak install -y flathub com.spotify.Client 2>/dev/null || warn "Spotify Flatpak install failed."
+      else
+        sudo dnf install -y lpf-spotify-client 2>/dev/null || warn "Spotify install failed."
+      fi
+      ok "Spotify installed."
+    fi
+  fi
+
+  # 2. Run SpotX-Bash patcher
+  echo ""
+  ask "Do you want to run SpotX-Bash now to block ads and unlock features? [Y/n]"
+  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [Y/n] (default: Y): " RUN_SPOTX
+  RUN_SPOTX="${RUN_SPOTX:-Y}"
+
+  if [[ "$RUN_SPOTX" =~ ^[Yy]$ ]]; then
+    log "Running SpotX-Bash patcher..."
+    bash <(curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) || \
+      bash <(curl -sSL https://spotx-official.github.io/run.sh) || \
+      warn "SpotX-Bash execution failed. Please run manually: bash <(curl -sSL https://spotx-official.github.io/run.sh)"
+    ok "SpotX-Bash executed."
+  fi
+}
+
 # ── Complete Setup Workflow ───────────────────────────────────────
 run_terminal_setup() {
   setup_aur_helper
@@ -478,6 +526,12 @@ run_full_setup() {
   read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [Y/n] (default: Y): " DO_APPS
   DO_APPS="${DO_APPS:-Y}"
   [[ "$DO_APPS" =~ ^[Yy]$ ]] && install_productivity_apps
+
+  echo ""
+  ask "Do you want to install Spotify and apply SpotX-Bash adblock patch? [Y/n]"
+  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [Y/n] (default: Y): " DO_SPOTIFY
+  DO_SPOTIFY="${DO_SPOTIFY:-Y}"
+  [[ "$DO_SPOTIFY" =~ ^[Yy]$ ]] && install_spotify_and_spotx
 }
 
 # ── Main Menu ─────────────────────────────────────────────────────
@@ -490,14 +544,15 @@ echo -e "${TEAL}${BOLD}│   Terminal │ Productivity Apps │ Desktop Customiz
 echo -e "${TEAL}${BOLD}╰────────────────────────────────────────────────────────╯${RESET}"
 echo ""
 echo "Select installation mode:"
-echo "  1) Full Workstation Setup (Terminal + Configs + Hatter Icons + Apps)"
+echo "  1) Full Workstation Setup (Terminal + Configs + Hatter Icons + Apps + Spotify)"
 echo "  2) Terminal Setup Only    (Zsh, Starship, Fastfetch, Atuin, Ghostty/Console)"
 echo "  3) Install Hatter Icons   (Rounded icon theme from Mibea/Hatter)"
 echo "  4) Productivity Suite     (Zed, Antigravity, Android Studio, ONLYOFFICE)"
-echo "  5) Deploy Configs Only    (Sync .zshrc, starship.toml, fastfetch, terminal)"
+echo "  5) Spotify & SpotX-Bash   (Spotify Desktop + SpotX Adblock/Theme Patcher)"
+echo "  6) Deploy Configs Only    (Sync .zshrc, starship.toml, fastfetch, terminal)"
 echo "  0) Exit"
 echo ""
-read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [1-5 / 0] (default: 1): " MENU_CHOICE
+read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [1-6 / 0] (default: 1): " MENU_CHOICE
 MENU_CHOICE="${MENU_CHOICE:-1}"
 
 case "$MENU_CHOICE" in
@@ -509,6 +564,10 @@ case "$MENU_CHOICE" in
     install_productivity_apps
     ;;
   5)
+    setup_aur_helper
+    install_spotify_and_spotx
+    ;;
+  6)
     choose_terminal
     deploy_configs
     ;;
