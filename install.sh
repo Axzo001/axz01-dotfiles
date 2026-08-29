@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
 #  Dotfiles Installer — Universal Linux Workstation Setup
-#  Terminal │ Desktop & Extensions │ Productivity │ Media
+#  Terminal │ Desktop & Extensions │ Productivity │ Media │ Wallpapers
 #  Supports: Arch Linux (paru/yay/pacman), Fedora Workstation (dnf)
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
@@ -350,7 +350,6 @@ install_hatter_icons() {
     if [ -f "$tmp_dir/install.sh" ]; then
       (cd "$tmp_dir" && bash ./install.sh -d "$icon_dir" 2>/dev/null || bash ./install.sh 2>/dev/null || true)
     fi
-    # Ensure fallback copy if installer placed elsewhere
     if [ -d "$tmp_dir/Hatter" ] && [ ! -d "$icon_dir/Hatter" ]; then
       cp -r "$tmp_dir/Hatter"* "$icon_dir/" 2>/dev/null || true
     fi
@@ -640,6 +639,46 @@ install_spotify_and_spotx() {
   fi
 }
 
+# ── 12. Workstation Wallpapers ────────────────────────────────────
+install_wallpapers() {
+  echo ""
+  echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────╮${RESET}"
+  echo -e "${TEAL}${BOLD}│                Workstation Wallpapers              │${RESET}"
+  echo -e "${TEAL}${BOLD}╰────────────────────────────────────────────────────╯${RESET}"
+  log "Installing wallpapers to ~/Pictures/Wallpapers/..."
+  local wp_dir="$HOME/Pictures/Wallpapers"
+  mkdir -p "$wp_dir"
+
+  if [ -d "$SCRIPT_DIR/wallpapers" ]; then
+    cp -r "$SCRIPT_DIR/wallpapers/"* "$wp_dir/" 2>/dev/null || true
+    ok "Wallpapers copied to $wp_dir."
+  fi
+
+  echo ""
+  ask "Which wallpaper would you like to set as active desktop background?"
+  echo "  1) Creation of Adam (Matrix Dots)"
+  echo "  2) Arch Linux Monochrome Cubes"
+  echo "  3) Keep current wallpaper"
+  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [1-3] (default: 1): " WP_CHOICE
+  WP_CHOICE="${WP_CHOICE:-1}"
+
+  local selected_wp=""
+  case "$WP_CHOICE" in
+    1) selected_wp="$wp_dir/creation-of-adam.jpg" ;;
+    2) selected_wp="$wp_dir/arch-cubes.jpg" ;;
+    *) log "Keeping current wallpaper." ;;
+  esac
+
+  if [ -n "$selected_wp" ] && [ -f "$selected_wp" ]; then
+    if command -v gsettings &>/dev/null; then
+      gsettings set org.gnome.desktop.background picture-uri "file://$selected_wp" 2>/dev/null || true
+      gsettings set org.gnome.desktop.background picture-uri-dark "file://$selected_wp" 2>/dev/null || true
+      gsettings set org.gnome.desktop.background picture-options 'zoom' 2>/dev/null || true
+      ok "Wallpaper applied to GNOME Desktop."
+    fi
+  fi
+}
+
 # ── Complete Setup Workflow ───────────────────────────────────────
 run_terminal_setup() {
   setup_aur_helper
@@ -653,14 +692,19 @@ run_terminal_setup() {
   setup_atuin_history
 }
 
+run_desktop_setup() {
+  install_hatter_icons
+  install_wallpapers
+}
+
 run_full_setup() {
   run_terminal_setup
   
   echo ""
-  ask "Do you want to install the Hatter Icon Theme? [Y/n]"
-  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [Y/n] (default: Y): " DO_ICONS
-  DO_ICONS="${DO_ICONS:-Y}"
-  [[ "$DO_ICONS" =~ ^[Yy]$ ]] && install_hatter_icons
+  ask "Do you want to install Hatter Icons & Custom Wallpapers? [Y/n]"
+  read -rp "$(echo -e "${TEAL}${BOLD}  ❯ ${RESET}")Enter choice [Y/n] (default: Y): " DO_DESKTOP
+  DO_DESKTOP="${DO_DESKTOP:-Y}"
+  [[ "$DO_DESKTOP" =~ ^[Yy]$ ]] && run_desktop_setup
 
   echo ""
   ask "Do you want to install Extension Manager and GNOME Extensions? [Y/n]"
@@ -687,13 +731,13 @@ detect_distro
 echo ""
 echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────────╮${RESET}"
 echo -e "${TEAL}${BOLD}│          Axz01 Dotfiles — Master Installer             │${RESET}"
-echo -e "${TEAL}${BOLD}│   Terminal │ Desktop & Extensions │ Dev Apps │ Media   │${RESET}"
+echo -e "${TEAL}${BOLD}│   Terminal │ Desktop & Wallpapers │ Apps │ Media       │${RESET}"
 echo -e "${TEAL}${BOLD}╰────────────────────────────────────────────────────────╯${RESET}"
 echo ""
 echo "Select installation mode:"
-echo "  1) Full Workstation Setup (Terminal + Configs + Icons + Extensions + Apps + Spotify)"
+echo "  1) Full Workstation Setup (Terminal + Configs + Desktop + Extensions + Apps + Spotify)"
 echo "  2) Terminal Setup Only    (Zsh, Starship, Fastfetch, Atuin, Ghostty/Console)"
-echo "  3) Desktop & Icons        (Hatter Icon Theme from Mibea/Hatter)"
+echo "  3) Desktop & Wallpapers   (Hatter Icon Theme + Dark Monochrome Wallpapers)"
 echo "  4) GNOME Extensions Suite (Extension Manager GUI + Top 5 GNOME Extensions)"
 echo "  5) Productivity Suite     (Zed, Antigravity, Android Studio, ONLYOFFICE)"
 echo "  6) Spotify & SpotX-Bash   (Spotify Desktop + SpotX Adblock/Theme Patcher)"
@@ -706,7 +750,7 @@ MENU_CHOICE="${MENU_CHOICE:-1}"
 case "$MENU_CHOICE" in
   1) run_full_setup ;;
   2) run_terminal_setup ;;
-  3) install_hatter_icons ;;
+  3) run_desktop_setup ;;
   4)
     setup_aur_helper
     install_gnome_extensions_suite

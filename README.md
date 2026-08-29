@@ -2,7 +2,7 @@
 
 My personal Linux workstation setup for **Arch Linux** and **Fedora Workstation**.
 
-An all-in-one dotfiles repository featuring a teal/mint glassmorphic terminal, desktop aesthetics & GNOME extensions, developer productivity suite, and media enhancements.
+An all-in-one dotfiles repository featuring a teal/mint glassmorphic terminal, desktop aesthetics & GNOME extensions, developer productivity suite, custom wallpapers, and media enhancements.
 
 ![Showcase](assets/showcase.png)
 
@@ -18,9 +18,9 @@ chmod +x install.sh
 ### Interactive Installer Options
 
 When running `./install.sh`, you can choose:
-* **1) Full Workstation Setup** — Complete setup with terminal, configs, Hatter icons, GNOME extensions, apps, and Spotify + SpotX
+* **1) Full Workstation Setup** — Complete setup with terminal, configs, Hatter icons, wallpapers, GNOME extensions, apps, and Spotify + SpotX
 * **2) Terminal Setup Only** — Zsh, OMZ, plugins, Starship, Fastfetch, Atuin, and terminal profiles
-* **3) Desktop & Icons** — Install and apply the rounded Hatter icon theme ([Mibea/Hatter](https://github.com/Mibea/Hatter))
+* **3) Desktop & Wallpapers** — Install Hatter icon theme and deploy custom dark wallpapers
 * **4) GNOME Extensions Suite** — Install Extension Manager GUI and top 5 essential GNOME extensions
 * **5) Productivity Suite** — Install Zed, Antigravity, Android Studio, and ONLYOFFICE
 * **6) Spotify & SpotX-Bash** — Install Spotify client and run SpotX-Bash for ad-blocking and UI enhancements
@@ -35,8 +35,11 @@ The installer automatically detects your distribution, builds `paru` or `yay` if
 * **System Info**: Fastfetch with compact small logo and storage monitoring.
 * **History**: Atuin with enhanced fuzzy search and command history tracking.
 * **Icons & Themes**: [Hatter Icon Theme](https://github.com/Mibea/Hatter) for rounded, modern desktop styling.
+* **Workstation Wallpapers**:
+  * **Creation of Adam** — Matrix-style dot hand art on pitch-black background
+  * **Arch Linux Monochrome Cubes** — 3D geometric glass cube rendering with Arch branding
 * **GNOME Extensions & Manager**:
-  * **Extension Manager** — Clean native GUI for managing and discovering GNOME extensions
+  * **Extension Manager** — Native GUI for managing and discovering GNOME extensions
   * **AppIndicator Support** — System tray icons in top bar
   * **Blur my Shell** — Modern blur effect on panel and overview
   * **Caffeine** — Quick toggle to inhibit screen sleep/lock
