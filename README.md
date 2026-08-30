@@ -1,4 +1,4 @@
-# axz01-dotfiles
+# dotfiles
 
 My personal Linux workstation setup for **Arch Linux** and **Fedora Workstation**.
 
@@ -9,8 +9,8 @@ An all-in-one dotfiles repository featuring a teal/mint glassmorphic terminal, d
 ## Installation
 
 ```bash
-git clone https://github.com/Axzo001/axz01-dotfiles.git
-cd axz01-dotfiles
+git clone https://github.com/Axzo001/dotfiles.git
+cd dotfiles
 chmod +x install.sh
 ./install.sh
 ```

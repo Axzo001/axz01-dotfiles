@@ -783,7 +783,7 @@ detect_distro
 
 echo ""
 echo -e "${TEAL}${BOLD}╭────────────────────────────────────────────────────────╮${RESET}"
-echo -e "${TEAL}${BOLD}│          Axz01 Dotfiles — Master Installer             │${RESET}"
+echo -e "${TEAL}${BOLD}│          Axzo001 Dotfiles — Master Installer           │${RESET}"
 echo -e "${TEAL}${BOLD}│   Terminal │ Desktop & Wallpapers │ Apps │ Media       │${RESET}"
 echo -e "${TEAL}${BOLD}╰────────────────────────────────────────────────────────╯${RESET}"
 echo ""
