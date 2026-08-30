@@ -341,26 +341,37 @@ setup_atuin_history() {
 # ── 8. Hatter Icon Theme (Mibea/Hatter) ────────────────────────────
 install_hatter_icons() {
   log "Installing Hatter Icon Theme (https://github.com/Mibea/Hatter)..."
-  local icon_dir="$HOME/.local/share/icons"
+  local icon_dir="$HOME/.icons"
   mkdir -p "$icon_dir"
   local tmp_dir="/tmp/hatter-icons-$$"
   rm -rf "$tmp_dir"
 
   if git clone --depth=1 https://github.com/Mibea/Hatter.git "$tmp_dir"; then
-    if [ -f "$tmp_dir/install.sh" ]; then
-      (cd "$tmp_dir" && bash ./install.sh -d "$icon_dir" 2>/dev/null || bash ./install.sh 2>/dev/null || true)
-    fi
-    if [ -d "$tmp_dir/Hatter" ] && [ ! -d "$icon_dir/Hatter" ]; then
-      cp -r "$tmp_dir/Hatter"* "$icon_dir/" 2>/dev/null || true
-    fi
+    log "Copying Hatter icon packs directly to ~/.icons/..."
+    local copied_any=false
+    for d in "$tmp_dir"/Hatter*/; do
+      if [ -d "$d" ] && [ -f "$d/index.theme" ]; then
+        local theme_name
+        theme_name="$(basename "$d")"
+        rm -rf "$icon_dir/$theme_name"
+        cp -r "$d" "$icon_dir/"
+        gtk-update-icon-cache -f "$icon_dir/$theme_name" 2>/dev/null || true
+        copied_any=true
+      fi
+    done
+
+    # Clean up cloned repo
     rm -rf "$tmp_dir"
-    gtk-update-icon-cache -f "$icon_dir/Hatter" 2>/dev/null || true
-    
-    if command -v gsettings &>/dev/null; then
-      gsettings set org.gnome.desktop.interface icon-theme 'Hatter' 2>/dev/null || true
-      ok "Hatter Icon Theme set as active GNOME icon theme."
+
+    if [ "$copied_any" = true ]; then
+      if command -v gsettings &>/dev/null; then
+        gsettings set org.gnome.desktop.interface icon-theme 'Hatter' 2>/dev/null || true
+        ok "Hatter Icon Theme set as active GNOME icon theme."
+      fi
+      ok "Hatter icon packs successfully installed to ~/.icons/."
+    else
+      warn "No Hatter icon directories found in the cloned repository."
     fi
-    ok "Hatter Icon Theme installed to ~/.local/share/icons."
   else
     warn "Could not clone Hatter repository. Please check your internet connection."
   fi
